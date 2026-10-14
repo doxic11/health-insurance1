@@ -3,163 +3,183 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Hospital policy explorer</title>
+<title>Policy Explorer</title>
 <style>
   :root {
-    --bg:#ffffff; --panel:#f4f6fa; --card:#ffffff; --text:#1b2430; --muted:#667385; --border:#dde3ec;
-    --accent:#1b6ef3; --accent-text:#ffffff; --bot:#eef1f6; --hl:#fff6c9;
-    --c-fg:#17703f; --c-bg:#e3f4ea; --r-fg:#8f5400; --r-bg:#fdf0d8; --x-fg:#b3261e; --x-bg:#fbe6e4;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg:#12161c; --panel:#1a1f27; --card:#1d222b; --text:#e8edf4; --muted:#93a0b2; --border:#2e3644;
-      --accent:#4b8dff; --accent-text:#0c1220; --bot:#242a35; --hl:#3b3817;
-      --c-fg:#5fd18f; --c-bg:#17362a; --r-fg:#f0b45a; --r-bg:#3a2e14; --x-fg:#ff8f87; --x-bg:#3d1f1d;
-    }
+    --bg:#e8f0fa; --panel:#dbe8f6; --card:#f5f9fe; --text:#26405a; --muted:#6a84a0; --border:#cddcee;
+    --accent:#5b92cc; --accent-soft:#d9e8f8; --accent-text:#ffffff; --green:#a9c8ea; --green-soft:#d6e5f6;
+    --bot:#dfeaf7; --user:#cfe1f6; --hl:#fff8d6; --shadow:0 2px 10px rgba(70,110,160,.10);
+    --c-fg:#2f6597; --c-bg:#d3e4f7; --r-fg:#8a5a00; --r-bg:#fff0d2; --x-fg:#b0484a; --x-bg:#fde6e6;
   }
   * { box-sizing: border-box; }
   html, body { height: 100%; margin: 0; }
-  body { font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg);
+  body { font: 14px/1.5 "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg);
          color: var(--text); display: flex; flex-direction: column; }
   button, select, input { font: inherit; color: inherit; }
-  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0 0 10px; }
-  .top { display: flex; align-items: center; gap: 14px; padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--panel); }
-  .top strong { font-size: 15px; white-space: nowrap; }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
+  .top { display: flex; align-items: center; gap: 14px; padding: 12px 20px; background: linear-gradient(90deg, #d5e5f7 0%, #e3edf9 100%); border-bottom: 1px solid var(--border); }
+  .logo { width: 30px; height: 30px; border-radius: 10px; background: linear-gradient(135deg, #9cc0e8, var(--accent)); display: grid; place-items: center; color: #fff; font-weight: 700; }
+  .top strong { font-size: 18px; letter-spacing: -.01em; white-space: nowrap; }
   .top .sub { color: var(--muted); font-size: 12px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .mtabs { display: none; gap: 4px; }
-  .mtabs button { padding: 5px 12px; border: 1px solid var(--border); background: var(--card); border-radius: 999px; cursor: pointer; }
+  .mtabs button { padding: 5px 14px; border: 1px solid var(--border); background: var(--card); border-radius: 999px; cursor: pointer; }
   .mtabs button.on { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
 
-  main { flex: 1; min-height: 0; display: grid; grid-template-columns: 330px minmax(0, 1fr) 380px; }
+  main { flex: 1; min-height: 0; display: grid; grid-template-columns: 330px minmax(0, 1fr) 410px; gap: 14px; padding: 14px; }
   .left, .center, .chat { min-height: 0; overflow: auto; }
-  .left { padding: 14px; border-right: 1px solid var(--border); background: var(--panel); display: flex; flex-direction: column; gap: 14px; }
-  .center { padding: 14px 18px; }
-  .chat { border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+  .left { display: flex; flex-direction: column; gap: 14px; padding: 2px; }
+  .center { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 16px 18px; box-shadow: var(--shadow); }
+  .chat { position: relative; background: var(--card); border: 1px solid var(--border); border-radius: 18px; display: flex; flex-direction: column; overflow: hidden; box-shadow: var(--shadow); }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 14px; box-shadow: var(--shadow); }
   label.f { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
-  select, .ms-btn, .search { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); }
-  select:focus, .ms-btn:focus, .search:focus, #input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  select, .ms-btn, .search { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 12px; background: #edf3fb; }
+  select:focus, .ms-btn:focus, .search:focus, #input:focus { outline: 2px solid #a9cdea; outline-offset: -1px; }
+  .chk { display: flex; align-items: center; gap: 8px; margin-top: 10px; cursor: pointer; color: var(--muted); font-size: 13px; }
 
-  /* multi-select dropdown */
   .ms { position: relative; }
   .ms-btn { display: flex; justify-content: space-between; align-items: center; gap: 8px; cursor: pointer; text-align: left; }
   .ms-btn .caret { color: var(--muted); }
-  .ms-pop { position: absolute; z-index: 20; left: 0; right: 0; top: calc(100% + 4px); background: var(--card);
-            border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.18); padding: 8px; }
+  .ms-pop { position: absolute; z-index: 20; left: 0; right: 0; top: calc(100% + 6px); background: var(--card);
+            border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 12px 32px rgba(40,90,130,.18); padding: 10px; }
   .ms-pop[hidden] { display: none; }
-  .ms-search { width: 100%; padding: 7px 9px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); margin-bottom: 6px; }
+  .ms-search { width: 100%; padding: 7px 11px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); margin-bottom: 6px; }
   .ms-list { max-height: 300px; overflow: auto; }
-  .ms-group { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); padding: 8px 6px 3px; }
-  .ms-item { display: flex; align-items: center; gap: 8px; padding: 5px 6px; border-radius: 6px; cursor: pointer; }
+  .ms-group { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 8px 6px 3px; }
+  .ms-item { display: flex; align-items: center; gap: 8px; padding: 6px; border-radius: 8px; cursor: pointer; }
   .ms-item:hover { background: var(--panel); }
   .ms-item .r { margin-left: auto; color: var(--muted); font-size: 12px; white-space: nowrap; }
   .ms-empty { padding: 10px 6px; color: var(--muted); }
   .ms-foot { display: flex; justify-content: space-between; padding-top: 6px; border-top: 1px solid var(--border); margin-top: 6px; }
+  .star { border: 0; background: none; cursor: pointer; font-size: 16px; line-height: 1; color: #b9c8d2; padding: 0 2px; }
+  .star:hover { color: #e3a93b; }
+  .star.on { color: #e3a93b; }
 
-  .row { display: flex; gap: 8px; margin-top: 8px; }
-  .btn { padding: 6px 11px; border: 1px solid var(--border); background: var(--card); border-radius: 8px; cursor: pointer; }
-  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .row { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .btn { padding: 6px 12px; border: 1px solid var(--border); background: #eef4fc; border-radius: 999px; cursor: pointer; }
+  .btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
   .btn.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
-  .btn.primary:hover { color: var(--accent-text); opacity: .9; }
+  .btn.primary:hover { color: var(--accent-text); opacity: .92; background: var(--accent); }
   .btn.link { border: 0; background: none; color: var(--accent); padding: 2px 4px; }
+  .btn.sm { padding: 3px 10px; font-size: 12px; }
   .btn:disabled { opacity: .5; cursor: default; }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-  .chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 4px 3px 10px; background: var(--bot); border-radius: 999px; font-size: 12px; }
+  .chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 4px 3px 11px; background: var(--green-soft); border-radius: 999px; font-size: 12px; }
   .chip button { border: 0; background: none; cursor: pointer; color: var(--muted); font-size: 14px; line-height: 1; padding: 0 5px; }
   .chip button:hover { color: var(--x-fg); }
 
   .found { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 10px; }
   .found .head { display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-bottom: 6px; }
-  .res { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--border); }
+  .res { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); }
   .res:last-child { border-bottom: 0; }
   .res .t { flex: 1; min-width: 0; }
   .res .n { font-weight: 600; }
   .res .m { color: var(--muted); font-size: 12px; }
   .note { color: var(--muted); font-size: 12px; margin-top: 6px; }
 
-  /* badges */
-  .b { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .b { display: inline-flex; align-items: center; gap: 4px; padding: 1px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
   .b i { font-style: normal; font-weight: 700; }
   .b-c { color: var(--c-fg); background: var(--c-bg); }
   .b-r { color: var(--r-fg); background: var(--r-bg); }
   .b-x { color: var(--x-fg); background: var(--x-bg); }
   .legend { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; color: var(--muted); font-size: 12px; margin: 8px 0; }
 
-  /* center */
-  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
-  .tabs button { padding: 8px 14px; border: 0; background: none; cursor: pointer; border-bottom: 2px solid transparent; color: var(--muted); }
-  .tabs button.on { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+  .tabs { display: inline-flex; gap: 4px; background: var(--panel); border-radius: 999px; padding: 4px; margin-bottom: 14px; }
+  .tabs button { padding: 6px 16px; border: 0; background: none; cursor: pointer; border-radius: 999px; color: var(--muted); }
+  .tabs button.on { background: var(--card); color: var(--text); font-weight: 600; box-shadow: var(--shadow); }
   .toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
-  .toolbar .search { max-width: 360px; }
+  .toolbar .search { max-width: 380px; }
   .toolbar label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
-  .strip { background: var(--bot); border-radius: 10px; padding: 9px 12px; margin: 10px 0; }
+  .strip { background: var(--accent-soft); border-radius: 12px; padding: 9px 12px; margin: 10px 0; }
   .empty { text-align: center; padding: 50px 20px; color: var(--muted); }
   .empty h3 { color: var(--text); margin: 0 0 6px; }
-  .tablewrap { overflow: auto; border: 1px solid var(--border); border-radius: 10px; max-height: calc(100vh - 250px); }
+  .tablewrap { overflow: auto; border: 1px solid var(--border); border-radius: 14px; max-height: calc(100vh - 290px); }
   table.cmp { border-collapse: separate; border-spacing: 0; width: 100%; }
-  table.cmp th, table.cmp td { padding: 7px 10px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: middle; }
+  table.cmp th, table.cmp td { padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: middle; }
   table.cmp thead th { position: sticky; top: 0; z-index: 3; background: var(--panel); vertical-align: top; min-width: 150px; }
   table.cmp .corner, table.cmp tbody th { position: sticky; left: 0; z-index: 2; background: var(--card); min-width: 230px; max-width: 260px; font-weight: 500; }
   table.cmp thead .corner { z-index: 4; background: var(--panel); }
-  table.cmp tr.meta td, table.cmp tr.meta th { background: var(--panel); font-weight: 600; }
+  table.cmp tr.meta td, table.cmp tr.meta th { background: var(--green-soft); font-weight: 600; }
   table.cmp tr.hl td, table.cmp tr.hl th { background: var(--hl); }
   table.cmp td.ask { cursor: pointer; }
-  table.cmp td.ask:hover { outline: 2px solid var(--accent); outline-offset: -2px; }
-  .ph .tier { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  table.cmp td.ask:hover { outline: 2px solid #a9cdea; outline-offset: -2px; }
+  .ph .tier { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
   .ph .nm { font-weight: 700; cursor: pointer; }
   .ph .nm:hover { color: var(--accent); }
   .ph .pr { color: var(--muted); font-weight: 400; }
   .ph .rm { float: right; border: 0; background: none; cursor: pointer; color: var(--muted); font-size: 16px; line-height: 1; }
   .ph .rm:hover { color: var(--x-fg); }
-  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px; }
-  .pcard h3 { margin: 0 0 2px; font-size: 16px; }
+  .ph .star { float: right; margin-right: 4px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; }
+  .pcard h3 { margin: 0 0 2px; font-size: 16px; display: flex; justify-content: space-between; align-items: center; }
   .pcard .meta { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
-  .pcard dl { margin: 0; } .pcard dt { font-weight: 600; margin-top: 9px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .pcard dl { margin: 0; } .pcard dt { font-weight: 600; margin-top: 9px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
   .pcard dd { margin: 2px 0 0; } .pcard ul { margin: 2px 0 0; padding-left: 18px; }
 
-  /* chat */
-  .chat .hd { padding: 10px 14px; border-bottom: 1px solid var(--border); background: var(--panel); }
+  .chat .hd { padding: 12px 14px; border-bottom: 1px solid var(--border); background: linear-gradient(90deg, #dbe8f6, #e6effa); }
   .chat .hd .row1 { display: flex; align-items: center; gap: 8px; }
   .chat .hd strong { flex: 1; }
-  .mode { font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: var(--accent); color: var(--accent-text); }
+  .mode { font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; padding: 2px 9px; border-radius: 999px; background: var(--c-bg); color: var(--c-fg); }
   .mode.off { background: var(--r-bg); color: var(--r-fg); }
-  #scope { color: var(--muted); font-size: 12px; margin-top: 3px; }
-  #log { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
-  .msg:has(table) { max-width: 100%; overflow-x: auto; }
-  .msg { max-width: 94%; padding: 8px 12px; border-radius: 14px; overflow-wrap: anywhere; }
+  .tools { display: flex; gap: 6px; margin-top: 8px; }
+  #scope { color: var(--muted); font-size: 12px; margin-top: 6px; }
+  #log { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .msg { max-width: 94%; padding: 9px 13px; border-radius: 16px; overflow: visible; overflow-wrap: anywhere; }
+  .msg:has(table) { max-width: 100%; align-self: stretch; }
   .msg p { margin: 0 0 7px; } .msg p:last-child { margin-bottom: 0; }
   .msg ul { margin: 0 0 7px; padding-left: 18px; } .msg ul:last-child { margin-bottom: 0; }
   .bot { background: var(--bot); border-bottom-left-radius: 4px; align-self: flex-start; }
-  .user { background: var(--accent); color: var(--accent-text); border-bottom-right-radius: 4px; align-self: flex-end; }
+  .user { background: var(--user); border-bottom-right-radius: 4px; align-self: flex-end; }
   .dots span { display: inline-block; width: 6px; height: 6px; margin-right: 3px; border-radius: 50%; background: var(--muted); animation: blink 1.2s infinite both; }
   .dots span:nth-child(2) { animation-delay: .2s; } .dots span:nth-child(3) { animation-delay: .4s; }
   @keyframes blink { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
-  table.mini { border-collapse: collapse; width: 100%; margin-top: 8px; background: var(--card); border-radius: 8px; overflow: hidden; font-size: 12.5px; }
-  table.mini th, table.mini td { padding: 5px 8px; border-bottom: 1px solid var(--border); text-align: left; }
-  table.mini td, table.mini thead th { white-space: nowrap; }
-  table.mini tbody th { min-width: 90px; }
-  table.mini thead th { background: var(--panel); color: var(--muted); font-weight: 600; }
+  table.mini { border-collapse: collapse; width: 100%; table-layout: auto; margin-top: 8px; background: var(--card); border-radius: 10px; font-size: 12px; }
+  table.mini th, table.mini td { padding: 5px 6px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: middle; overflow-wrap: anywhere; }
+  table.mini td.num { white-space: nowrap; }
+  table.mini thead th { background: var(--panel); color: var(--muted); font-weight: 600; font-size: 11px; }
+  table.mini .b { padding: 0 6px; white-space: normal; }
+  table.mini tbody th { width: 34%; overflow-wrap: break-word; word-break: normal; }
   table.mini tr:last-child td, table.mini tr:last-child th { border-bottom: 0; }
   #sugg { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 8px; }
-  #sugg button { font-size: 12.5px; padding: 5px 10px; border-radius: 999px; cursor: pointer; border: 1px solid var(--accent); background: transparent; color: var(--accent); }
+  #sugg button { font-size: 12.5px; padding: 5px 11px; border-radius: 999px; cursor: pointer; border: 1px solid #b7cfea; background: var(--accent-soft); color: #2f5f93; }
   #sugg button:hover { background: var(--accent); color: var(--accent-text); }
   #form { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--border); }
-  #input { flex: 1; min-width: 0; padding: 9px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--bg); }
-  #send { padding: 0 16px; border: 0; border-radius: 999px; background: var(--accent); color: var(--accent-text); font-weight: 600; cursor: pointer; }
+  #input { flex: 1; min-width: 0; padding: 9px 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--bg); }
+  #send { padding: 0 18px; border: 0; border-radius: 999px; background: var(--accent); color: var(--accent-text); font-weight: 600; cursor: pointer; }
   #send:disabled { opacity: .5; cursor: default; }
   .foot { padding: 0 12px 8px; font-size: 11px; color: var(--muted); text-align: center; }
 
-  /* narrower iframes: chat becomes a tab */
+  .combo { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 12px; margin-top: 8px; background: #edf3fb; }
+  .combo .ct { flex: 1; min-width: 0; }
+  .combo .ct b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+  .combo .ct span { color: var(--muted); font-size: 12px; }
+  .combo .del { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 16px; }
+  .combo .del:hover { color: var(--x-fg); }
+  .saveform { display: flex; gap: 6px; margin-top: 8px; }
+  .saveform[hidden] { display: none; }
+  .saveform input { flex: 1; min-width: 0; padding: 6px 12px; border: 1px solid var(--border); border-radius: 999px; background: #edf3fb; }
+  .hist { position: absolute; inset: 0; z-index: 10; background: var(--card); display: flex; flex-direction: column; }
+  .hist[hidden] { display: none; }
+  .hist .hh { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--border); background: linear-gradient(90deg, #dbe8f6, #e6effa); }
+  .hist .hh strong { flex: 1; }
+  .hist .hl { flex: 1; overflow: auto; padding: 10px; }
+  .hitem { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; margin-bottom: 8px; cursor: pointer; }
+  .hitem:hover { background: var(--accent-soft); border-color: #b7cfea; }
+  .hitem .ht { flex: 1; min-width: 0; }
+  .hitem .ht b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+  .hitem .ht span { color: var(--muted); font-size: 12px; }
+  .hitem .del { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 16px; }
+  .hitem .del:hover { color: var(--x-fg); }
+
   @media (max-width: 1100px) {
     main { grid-template-columns: 310px minmax(0, 1fr); }
     .mtabs { display: flex; }
-    .chat { display: none; grid-column: 2; border-left: 0; }
+    .chat { display: none; grid-column: 2; }
     body.view-chat .chat { display: flex; }
     body.view-chat .center { display: none; }
   }
   @media (max-width: 760px) {
     main { grid-template-columns: minmax(0, 1fr); }
-    .left { border-right: 0; max-height: 46vh; }
+    .left { max-height: 46vh; }
     body.view-chat .left { display: none; }
     .chat { grid-column: 1; }
   }
@@ -167,7 +187,7 @@
 </head>
 <body>
 <div class="top">
-  <strong>Hospital policy explorer</strong>
+  <span class="logo" aria-hidden="true">+</span><strong>Policy Explorer</strong>
   <span class="sub" id="asof"></span>
   <div class="mtabs"><button type="button" data-view="explore" class="on">Explore</button><button type="button" data-view="chat">Chat</button></div>
 </div>
@@ -177,7 +197,14 @@
       <h2>Products</h2>
       <div id="prodPicker"></div>
       <div class="chips" id="selChips"></div>
-      <div class="row"><button type="button" class="btn" id="selAll">Select all</button><button type="button" class="btn" id="selNone">Clear</button></div>
+      <div class="row"><button type="button" class="btn sm" id="selFavs">★ Select favourites</button><button type="button" class="btn sm" id="selAll">Select all</button><button type="button" class="btn sm" id="selNone">Clear</button></div>
+    </section>
+    <section class="card">
+      <h2>Favorite Combinations</h2>
+      <div class="note" style="margin:0 0 6px">Save the products you're comparing under a name.</div>
+      <button type="button" class="btn primary sm" id="saveCombo">Save current comparison</button>
+      <div class="saveform" id="saveForm" hidden><input id="comboName" type="text" maxlength="40" placeholder="Name, e.g. Maternity shortlist" aria-label="Combination name"><button type="button" class="btn primary sm" id="comboOk">Save</button><button type="button" class="btn sm" id="comboNo">Cancel</button></div>
+      <div id="combos"></div>
     </section>
     <section class="card">
       <h2>Find a policy</h2>
@@ -194,6 +221,7 @@
         <option value="200">$200 or less</option><option value="250">$250 or less</option><option value="300">$300 or less</option>
         <option value="400">$400 or less</option>
       </select>
+      <label class="chk"><input type="checkbox" id="favOnly"> Favourites only</label>
       <div class="found" id="found"></div>
     </section>
   </aside>
@@ -219,8 +247,10 @@
   <aside class="chat">
     <div class="hd">
       <div class="row1"><strong>Ask about these products</strong><span class="mode off" id="mode">Offline</span></div>
+      <div class="tools"><button type="button" class="btn sm" id="newChat">+ New chat</button><button type="button" class="btn sm" id="histBtn">History</button><button type="button" class="btn sm" id="clearChat">Clear chat</button></div>
       <div id="scope"></div>
     </div>
+    <div class="hist" id="histPanel" hidden><div class="hh"><strong>Chat history</strong><button type="button" class="btn sm" id="histAll">Delete all</button><button type="button" class="btn sm" id="histClose">Close</button></div><div class="hl" id="histList"></div></div>
     <div id="log" role="log" aria-live="polite"></div>
     <div id="sugg"></div>
     <form id="form" autocomplete="off">
@@ -324,7 +354,7 @@ var SVC = SERVICES.map(function (n) {
   stems(base).forEach(function (t) { toks[t] = 1; });
   var syn = (SYN[base.toLowerCase()] || []).map(function (s) {
     var whole = /!$/.test(s), raw = s.replace(/!$/, "");
-    return { raw: raw, whole: whole, re: new RegExp("\\b" + escRe(raw) + (whole ? "\\b" : "")) };
+    return { raw: raw, whole: whole, re: new RegExp((whole || raw.length < 5 ? "\\b" : "") + escRe(raw) + (whole ? "\\b" : "")) };
   });
   return { name: n, base: base, toks: Object.keys(toks), syn: syn };
 });
@@ -341,9 +371,23 @@ function svcMatch(s, q) {
   return s.syn.some(function (x) { return x.re.test(q) || (q.length >= 3 && x.raw.indexOf(q) === 0); });
 }
 
+function lev(a, b) {
+  if (Math.abs(a.length - b.length) > 1) return 9;
+  var prev = [], i, j;
+  for (j = 0; j <= b.length; j++) prev[j] = j;
+  for (i = 1; i <= a.length; i++) {
+    var cur = [i];
+    for (j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return prev[b.length];
+}
 function findServices(t, qs) {
   var qset = {};
-  qs.forEach(function (q) { qset[q] = 1; });
+  qs.forEach(function (q) {
+    qset[q] = 1;
+    if (q.length >= 6) SVC.forEach(function (sv) { sv.toks.forEach(function (tk) { if (tk.length >= 6 && !GENERIC[tk] && lev(q, tk) <= 1) qset[tk] = 1; }); });
+  });
   var scored = SVC.map(function (s) {
     var sc = 0, hits = 0;
     s.toks.forEach(function (tk) { if (qset[tk]) sc += GENERIC[tk] ? 0.4 : 1; });
@@ -696,7 +740,7 @@ if (typeof document !== "undefined") (function () {
     var h = '<table class="mini"><thead><tr><th></th>' + t.cols.map(function (c) { return "<th>" + escHtml(c) + "</th>"; }).join("") + "</tr></thead><tbody>";
     t.rows.forEach(function (r) {
       h += "<tr><th>" + escHtml(r.label) + "</th>" + r.cells.map(function (c) {
-        return "<td>" + (c.s ? '<span class="b b-' + c.s + '" title="' + LABEL[c.s] + '"><i>' + SYMBOL[c.s] + "</i>" + (c.t && c.t !== SYMBOL[c.s] ? " " + escHtml(c.t) : "") + "</span>" : escHtml(c.t || "")) + "</td>";
+        return "<td" + (!c.s && /^[$\d]/.test(c.t || "") ? ' class="num"' : "") + ">" + (c.s ? '<span class="b b-' + c.s + '" title="' + LABEL[c.s] + '"><i>' + SYMBOL[c.s] + "</i>" + (c.t && c.t !== SYMBOL[c.s] ? " " + escHtml(c.t) : "") + "</span>" : escHtml(c.t || "")) + "</td>";
       }).join("") + "</tr>";
     });
     return h + "</tbody></table>";
@@ -722,7 +766,8 @@ if (typeof document !== "undefined") (function () {
         if (q && !(o.match ? o.match(i, q) : (i.label + " " + (i.group || "")).toLowerCase().indexOf(q.toLowerCase()) >= 0)) return;
         any = true;
         if (i.group && i.group !== group) { group = i.group; h += '<div class="ms-group">' + escHtml(group) + "</div>"; }
-        h += '<label class="ms-item"><input type="checkbox" data-v="' + escHtml(i.value) + '"' + (sel[i.value] ? " checked" : "") + "><span>" + escHtml(i.label) + "</span>" + (i.right ? '<span class="r">' + escHtml(i.right) + "</span>" : "") + "</label>";
+        h += '<label class="ms-item"><input type="checkbox" data-v="' + escHtml(i.value) + '"' + (sel[i.value] ? " checked" : "") + "><span>" + escHtml(i.label) + "</span>" + (i.right ? '<span class="r">' + escHtml(i.right) + "</span>" : "") +
+          (o.onStar ? '<button type="button" class="star' + (i.fav ? " on" : "") + '" data-star="' + escHtml(i.value) + '" aria-label="' + (i.fav ? "Remove from" : "Add to") + ' favourites">' + (i.fav ? "★" : "☆") + "</button>" : "") + "</label>";
       });
       list.innerHTML = any ? h : '<div class="ms-empty">No matches</div>';
     }
@@ -731,10 +776,14 @@ if (typeof document !== "undefined") (function () {
       if (v) { if (openMs && openMs !== api) openMs.close(); openMs = api; search.value = ""; paint(); search.focus(); }
       else if (openMs === api) openMs = null;
     }
-    var api = { get: get, close: function () { setOpen(false); },
+    var api = { get: get, close: function () { setOpen(false); }, setItems: function (items) { o.items = items; if (open) paint(); },
       set: function (vals) { sel = {}; vals.forEach(function (v) { sel[v] = 1; }); text(); if (open) paint(); } };
     btn.addEventListener("click", function () { setOpen(!open); });
     search.addEventListener("input", paint);
+    list.addEventListener("click", function (e) {
+      var st = e.target.closest && e.target.closest("[data-star]");
+      if (st) { e.preventDefault(); e.stopPropagation(); o.onStar(st.getAttribute("data-star")); }
+    });
     list.addEventListener("change", function (e) {
       var v = e.target.getAttribute("data-v"); if (v == null) return;
       if (e.target.checked) sel[v] = 1; else delete sel[v];
@@ -752,13 +801,29 @@ if (typeof document !== "undefined") (function () {
   document.addEventListener("mousedown", function (e) { if (openMs && !e.target.closest(".ms")) openMs.close(); });
 
   /* ---------- selection ---------- */
-  var prodItems = [];
-  DATA.tiers.forEach(function (tier) {
-    P.filter(function (p) { return p.tier === tier; }).forEach(function (p) {
-      prodItems.push({ value: p.id, label: p.short, group: tier, right: money(p.premium) + "/mo" });
+  var favs = [];
+  function loadFavs() { try { var v = JSON.parse(localStorage.getItem("pe_favs") || "[]"); favs = Array.isArray(v) ? v.filter(function (i) { return BYID[i]; }) : []; } catch (e) { favs = []; } }
+  function saveFavs() { try { localStorage.setItem("pe_favs", JSON.stringify(favs)); } catch (e) {} }
+  function isFav(id) { return favs.indexOf(id) >= 0; }
+  function starBtn(id) { var f = isFav(id); return '<button type="button" class="star' + (f ? " on" : "") + '" data-fav="' + id + '" aria-pressed="' + f + '" aria-label="' + (f ? "Remove from" : "Add to") + ' favourites" title="' + (f ? "Remove from" : "Add to") + ' favourites">' + (f ? "★" : "☆") + "</button>"; }
+  function buildProdItems() {
+    var items = [];
+    P.filter(function (p) { return isFav(p.id); }).forEach(function (p) { items.push({ value: p.id, label: p.short, group: "★ Favourites", right: money(p.premium) + "/mo", fav: true }); });
+    DATA.tiers.forEach(function (tier) {
+      P.filter(function (p) { return p.tier === tier && !isFav(p.id); }).forEach(function (p) { items.push({ value: p.id, label: p.short, group: tier, right: money(p.premium) + "/mo", fav: false }); });
     });
-  });
-  var prodPicker = MultiSelect($("prodPicker"), { items: prodItems, placeholder: "Choose products…", searchPlaceholder: "Search products", onChange: function (v) { setSel(v, true); } });
+    return items;
+  }
+  loadFavs();
+  function toggleFav(id) {
+    var i = favs.indexOf(id);
+    if (i >= 0) favs.splice(i, 1); else favs.push(id);
+    saveFavs();
+    prodPicker.setItems(buildProdItems());
+    renderFavBtn(); renderFind(); renderCompare(); renderDetails();
+  }
+  function renderFavBtn() { $("selFavs").textContent = "★ Select favourites" + (favs.length ? " (" + favs.length + ")" : ""); $("selFavs").disabled = !favs.length; }
+  var prodPicker = MultiSelect($("prodPicker"), { items: buildProdItems(), placeholder: "Choose products…", searchPlaceholder: "Search products", onChange: function (v) { setSel(v, true); }, onStar: toggleFav });
   var svcPicker = MultiSelect($("svcPicker"), {
     items: SERVICES.map(function (n) { return { value: n, label: n }; }), placeholder: "Pick services you need…", searchPlaceholder: "Search, e.g. knee, dental",
     match: function (i, q) { return svcMatch(SVCBY[i.value], q); }, onChange: function () { renderFind(); }
@@ -769,7 +834,7 @@ if (typeof document !== "undefined") (function () {
     state.sel = ids.filter(function (i) { return BYID[i]; });
     if (!fromPicker) prodPicker.set(state.sel);
     try { history.replaceState(null, "", "#p=" + state.sel.map(function (i) { return i.replace(/^BUP_/, ""); }).join(",")); } catch (e) {}
-    renderChips(); renderCompare(); renderDetails(); renderFind(); updateScope();
+    renderChips(); renderCompare(); renderDetails(); renderFind(); updateScope(); renderCombos();
   }
   function renderChips() {
     $("selChips").innerHTML = selPolicies().map(function (p) {
@@ -780,24 +845,61 @@ if (typeof document !== "undefined") (function () {
     var id = e.target.getAttribute && e.target.getAttribute("data-rm");
     if (id) setSel(state.sel.filter(function (x) { return x !== id; }));
   });
+  $("selFavs").addEventListener("click", function () { setSel(favs.slice()); });
   $("selAll").addEventListener("click", function () { setSel(P.map(function (p) { return p.id; })); });
   $("selNone").addEventListener("click", function () { setSel([]); });
+
+  /* ---------- favorite combinations ---------- */
+  var combos = [];
+  function loadCombos() { try { var v = JSON.parse(localStorage.getItem("pe_combos") || "[]"); combos = Array.isArray(v) ? v : []; } catch (e) { combos = []; } }
+  function saveCombos() { try { localStorage.setItem("pe_combos", JSON.stringify(combos)); } catch (e) {} }
+  function renderCombos() {
+    $("saveCombo").disabled = !state.sel.length;
+    $("saveCombo").title = state.sel.length ? "" : "Choose some products first";
+    $("combos").innerHTML = combos.map(function (c) {
+      var ids = c.ids.filter(function (i) { return BYID[i]; });
+      return '<div class="combo"><div class="ct"><b title="' + escHtml(c.name) + '">' + escHtml(c.name) + "</b><span>" + ids.map(function (i) { return BYID[i].short; }).join(", ") + '</span></div><button type="button" class="btn sm" data-load="' + c.id + '">Load</button><button type="button" class="del" data-delc="' + c.id + '" aria-label="Delete ' + escHtml(c.name) + '">×</button></div>';
+    }).join("") || '<div class="note">No saved combinations yet.</div>';
+  }
+  function openSaveForm(v) {
+    $("saveForm").hidden = !v; $("saveCombo").hidden = v;
+    if (v) { $("comboName").value = ""; $("comboName").focus(); }
+  }
+  function commitCombo() {
+    var name = $("comboName").value.trim();
+    if (!name || !state.sel.length) { $("comboName").focus(); return; }
+    var existing = combos.filter(function (c) { return c.name.toLowerCase() === name.toLowerCase(); })[0];
+    if (existing) existing.ids = state.sel.slice();
+    else combos.unshift({ id: "k" + Date.now(), name: name, ids: state.sel.slice() });
+    saveCombos(); openSaveForm(false); renderCombos();
+  }
+  $("saveCombo").addEventListener("click", function () { if (state.sel.length) openSaveForm(true); });
+  $("comboOk").addEventListener("click", commitCombo);
+  $("comboNo").addEventListener("click", function () { openSaveForm(false); });
+  $("comboName").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); commitCombo(); } if (e.key === "Escape") openSaveForm(false); });
+  $("combos").addEventListener("click", function (e) {
+    var l = e.target.closest && e.target.closest("[data-load]"), d = e.target.closest && e.target.closest("[data-delc]");
+    if (l) { var c = combos.filter(function (x) { return x.id === l.getAttribute("data-load"); })[0]; if (c) { setSel(c.ids); showTab("compare"); } }
+    if (d) { combos = combos.filter(function (x) { return x.id !== d.getAttribute("data-delc"); }); saveCombos(); renderCombos(); }
+  });
+  loadCombos();
 
   /* ---------- find a policy ---------- */
   function renderFind() {
     var must = svcPicker.get(), lvl = $("level").value, mp = +$("maxPrem").value || Infinity;
     function ok(p, level) { return must.every(function (n) { return p.svc[n] === "c" || (level === "cr" && p.svc[n] === "r"); }); }
-    var m = sortPrem(P.filter(function (p) { return p.premium <= mp && ok(p, lvl); }));
+    var fo = $("favOnly").checked;
+    var m = sortPrem(P.filter(function (p) { return p.premium <= mp && ok(p, lvl) && (!fo || isFav(p.id)); }));
     var extra = lvl === "c" ? P.filter(function (p) { return p.premium <= mp && !ok(p, "c") && ok(p, "cr"); }).length : 0;
-    var filtered = must.length || mp < Infinity;
+    var filtered = must.length || mp < Infinity || fo;
     var h = '<div class="head"><strong>' + (filtered ? m.length + " of " + P.length + " policies match" : "All " + P.length + " policies") + "</strong>";
     h += '<button type="button" class="btn primary" id="cmpThese"' + (m.length ? "" : " disabled") + ">Compare " + (m.length === P.length ? "all" : "these") + "</button></div>";
-    if (!m.length) h += '<div class="note">No policies match. Try fewer must-haves, a higher price, or include restricted cover.</div>';
+    if (!m.length) h += '<div class="note">' + (fo && !favs.length ? "You haven't starred any policies yet. Use the ☆ next to a policy to add it. " : "") + 'No policies match. Try fewer must-haves, a higher price, or include restricted cover.</div>';
     m.forEach(function (p) {
       var inSel = state.sel.indexOf(p.id) >= 0;
-      h += '<div class="res"><div class="t"><div class="n">' + escHtml(p.short) + '</div><div class="m">' + money(p.premium) + "/mo · " + escHtml(p.tier) + "</div>" +
+      h += '<div class="res">' + starBtn(p.id) + '<div class="t"><div class="n">' + escHtml(p.short) + '</div><div class="m">' + money(p.premium) + "/mo · " + escHtml(p.tier) + "</div>" +
         (must.length && must.length <= 3 ? '<div style="margin-top:3px">' + must.map(function (n) { return '<span class="b b-' + p.svc[n] + '" title="' + escHtml(n) + ": " + LABEL[p.svc[n]] + '"><i>' + SYMBOL[p.svc[n]] + "</i></span> "; }).join("") + "</div>" : "") +
-        '</div><button type="button" class="btn" data-add="' + p.id + '"' + (inSel ? " disabled" : "") + ">" + (inSel ? "Added" : "Add") + "</button></div>";
+        '</div><button type="button" class="btn sm" data-add="' + p.id + '">' + (inSel ? "Remove" : "Add") + "</button></div>";
     });
     if (extra) h += '<div class="note">' + extra + " more " + (extra === 1 ? "policy matches" : "policies match") + ' if restricted cover is included. <button type="button" class="btn link" id="inclR">Include them</button></div>';
     else if (must.length) h += '<div class="note">R (restricted) only partly covers costs as a private patient in a public hospital.</div>';
@@ -806,11 +908,14 @@ if (typeof document !== "undefined") (function () {
     var ir = $("inclR"); if (ir) ir.onclick = function () { $("level").value = "cr"; renderFind(); };
   }
   $("found").addEventListener("click", function (e) {
+    var fv = e.target.closest && e.target.closest("[data-fav]");
+    if (fv) return toggleFav(fv.getAttribute("data-fav"));
     var id = e.target.getAttribute && e.target.getAttribute("data-add");
-    if (id && state.sel.indexOf(id) < 0) setSel(state.sel.concat([id]));
+    if (id) setSel(state.sel.indexOf(id) < 0 ? state.sel.concat([id]) : state.sel.filter(function (x) { return x !== id; }));
   });
   $("level").addEventListener("change", renderFind);
   $("maxPrem").addEventListener("change", renderFind);
+  $("favOnly").addEventListener("change", renderFind);
 
   /* ---------- compare table ---------- */
   function renderCompare() {
@@ -838,7 +943,7 @@ if (typeof document !== "undefined") (function () {
 
     var h = '<div class="tablewrap"><table class="cmp"><thead><tr><th class="corner">Service <span style="color:var(--muted);font-weight:400">(' + rows.length + " of " + SVC.length + ")</span></th>";
     cols.forEach(function (p) {
-      h += '<th class="ph"><button type="button" class="rm" data-rm="' + p.id + '" aria-label="Remove ' + escHtml(p.short) + '">×</button><div class="tier">' + escHtml(p.tier) + '</div><div class="nm" data-detail="' + p.id + '">' + escHtml(p.short) + '</div><div class="pr">' + money(p.premium) + "/mo</div></th>";
+      h += '<th class="ph"><button type="button" class="rm" data-rm="' + p.id + '" aria-label="Remove ' + escHtml(p.short) + '">×</button>' + starBtn(p.id) + '<div class="tier">' + escHtml(p.tier) + '</div><div class="nm" data-detail="' + p.id + '">' + escHtml(p.short) + '</div><div class="pr">' + money(p.premium) + "/mo</div></th>";
     });
     h += "</tr></thead><tbody>";
     h += '<tr class="meta"><th>Excess per admission</th>' + cols.map(function (p) { return "<td>" + (p.excess != null ? "$" + p.excess : "–") + "</td>"; }).join("") + "</tr>";
@@ -853,6 +958,8 @@ if (typeof document !== "undefined") (function () {
   $("svcSearch").addEventListener("input", renderCompare);
   $("diffOnly").addEventListener("change", renderCompare);
   $("cmp").addEventListener("click", function (e) {
+    var fv = e.target.closest && e.target.closest("[data-fav]");
+    if (fv) return toggleFav(fv.getAttribute("data-fav"));
     var rm = e.target.getAttribute && e.target.getAttribute("data-rm");
     if (rm) return setSel(state.sel.filter(function (x) { return x !== rm; }));
     var d = e.target.getAttribute && e.target.getAttribute("data-detail");
@@ -870,7 +977,7 @@ if (typeof document !== "undefined") (function () {
     if (!cols.length) { $("tab-details").innerHTML = '<div class="empty"><h3>No products selected</h3><p>Choose products to see their details.</p></div>'; return; }
     $("tab-details").innerHTML = '<div class="cards">' + cols.map(function (p) {
       var c = counts(p);
-      return '<article class="card pcard" id="pc-' + p.id + '"><h3>' + escHtml(p.short) + '</h3><div class="meta">' + escHtml(p.code) + " · " + escHtml(p.tier) + " · " + (p.updated ? "updated " + escHtml(p.updated) : "update date not shown") + "</div>" +
+      return '<article class="card pcard" id="pc-' + p.id + '"><h3>' + escHtml(p.short) + starBtn(p.id) + '</h3><div class="meta">' + escHtml(p.code) + " · " + escHtml(p.tier) + " · " + (p.updated ? "updated " + escHtml(p.updated) : "update date not shown") + "</div>" +
         "<dl><dt>Monthly premium</dt><dd><strong>" + money(p.premium) + "</strong> before any rebate, loading or discount. Covers " + escHtml(p.covers || "one person") + (p.state ? ", available in " + escHtml(p.state) : "") + ".</dd>" +
         "<dt>Excess</dt><dd>" + render(excessText(p).replace(/^an /, "An ").replace(/^$/, "")) + "</dd>" +
         "<dt>Services</dt><dd>" + c.c + " covered · " + c.r + " restricted · " + c.x + " not covered</dd>" +
@@ -882,6 +989,11 @@ if (typeof document !== "undefined") (function () {
         (p.url ? '<p style="margin:10px 0 0"><a href="' + escHtml(p.url) + '" target="_blank" rel="noopener noreferrer">Open the official statement on PrivateHealth.gov.au</a></p>' : "") + "</article>";
     }).join("") + "</div>";
   }
+
+  $("tab-details").addEventListener("click", function (e) {
+    var fv = e.target.closest && e.target.closest("[data-fav]");
+    if (fv) toggleFav(fv.getAttribute("data-fav"));
+  });
 
   /* ---------- tabs and layout ---------- */
   function showTab(t) {
@@ -898,6 +1010,52 @@ if (typeof document !== "undefined") (function () {
 
   /* ---------- chat ---------- */
   var log = $("log"), input = $("input"), send = $("send");
+  var GREETING = "Hi! Choose products on the left, search the services in the table, or ask me anything about them, like \"which policies cover dental and heart under $250?\"";
+  var chats = [], cur = null;
+  function loadChats() { try { var v = JSON.parse(localStorage.getItem("pe_chats") || "[]"); chats = Array.isArray(v) ? v : []; } catch (e) { chats = []; } }
+  function saveChats() { try { localStorage.setItem("pe_chats", JSON.stringify(chats.slice(0, 30))); } catch (e) {} }
+  function freshChat() { return { id: "c" + Date.now(), title: "", ts: Date.now(), html: "", hist: [], n: 0 }; }
+  function persist() {
+    var users = log.querySelectorAll(".msg.user");
+    if (!users.length) return;
+    cur.title = users[0].textContent.slice(0, 70); cur.ts = Date.now(); cur.n = users.length;
+    cur.html = log.innerHTML; cur.hist = state.history.slice(-12);
+    chats = chats.filter(function (c) { return c.id !== cur.id; });
+    chats.unshift(cur); chats = chats.slice(0, 30); saveChats();
+  }
+  function startChat() {
+    cur = freshChat(); state.history = []; log.innerHTML = "";
+    addMsg("bot", render(GREETING)); setSugg(startersFor(state.sel)); closeHist();
+  }
+  function openChat(id) {
+    var c = chats.filter(function (x) { return x.id === id; })[0]; if (!c) return;
+    persist(); cur = c; state.history = (c.hist || []).slice(); log.innerHTML = c.html; log.scrollTop = log.scrollHeight;
+    setSugg(startersFor(state.sel)); closeHist();
+  }
+  function closeHist() { $("histPanel").hidden = true; }
+  function renderHist() {
+    persist();
+    var h = chats.map(function (c) {
+      var d = new Date(c.ts), when = d.toLocaleDateString(undefined, { day: "numeric", month: "short" }) + " " + d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+      return '<div class="hitem" data-open="' + c.id + '" tabindex="0"><div class="ht"><b>' + escHtml(c.title || "Chat") + "</b><span>" + when + " · " + c.n + (c.n === 1 ? " question" : " questions") + '</span></div><button type="button" class="del" data-del="' + c.id + '" aria-label="Delete this chat">×</button></div>';
+    }).join("");
+    $("histList").innerHTML = h || '<div class="empty"><h3>No saved chats yet</h3><p>Your conversations are saved here automatically.</p></div>';
+    $("histPanel").hidden = false;
+  }
+  $("histBtn").addEventListener("click", renderHist);
+  $("histClose").addEventListener("click", closeHist);
+  $("histAll").addEventListener("click", function () { chats = []; saveChats(); renderHist(); });
+  $("histList").addEventListener("click", function (e) {
+    var d = e.target.closest && e.target.closest("[data-del]");
+    if (d) { var id = d.getAttribute("data-del"); chats = chats.filter(function (c) { return c.id !== id; }); saveChats(); if (cur && cur.id === id) { cur = freshChat(); } return renderHist(); }
+    var o = e.target.closest && e.target.closest("[data-open]");
+    if (o) openChat(o.getAttribute("data-open"));
+  });
+  $("newChat").addEventListener("click", function () { if (state.busy) return; persist(); startChat(); });
+  $("clearChat").addEventListener("click", function () {
+    if (state.busy) return;
+    chats = chats.filter(function (c) { return c.id !== cur.id; }); saveChats(); startChat();
+  });
   function addMsg(role, html) {
     var d = document.createElement("div");
     d.className = "msg " + role; d.innerHTML = html;
@@ -914,7 +1072,7 @@ if (typeof document !== "undefined") (function () {
   }
   function updateScope() {
     var S = selPolicies();
-    $("scope").textContent = S.length ? "Asking about: " + shorts(S).join(", ") : "Asking about: all " + P.length + " policies (choose products to narrow)";
+    $("scope").textContent = S.length ? "Asking about: " + (S.length <= 3 ? shorts(S).join(", ") : S.length + " selected policies") : "Asking about: all " + P.length + " policies (choose products to narrow)";
     if (!state.busy) setSugg(startersFor(state.sel));
   }
   function setMode(ai) {
@@ -933,7 +1091,7 @@ if (typeof document !== "undefined") (function () {
     state.busy = true; send.disabled = true; $("sugg").innerHTML = "";
     addMsg("user", escHtml(q));
     var bubble = addMsg("bot", '<span class="dots"><span></span><span></span><span></span></span>');
-    function finish() { state.busy = false; send.disabled = false; log.scrollTop = log.scrollHeight; input.focus(); }
+    function finish() { state.busy = false; send.disabled = false; persist(); log.scrollTop = log.scrollHeight; input.focus(); }
     function offline() {
       setTimeout(function () { showResult(bubble, answer(q, ids)); finish(); }, 350 + Math.random() * 250);
     }
@@ -967,10 +1125,12 @@ if (typeof document !== "undefined") (function () {
   /* ---------- start ---------- */
   var dates = P.map(function (p) { return p.updated; }).filter(Boolean).map(function (d) { return { d: d, t: Date.parse(d) }; }).filter(function (x) { return !isNaN(x.t); }).sort(function (a, b) { return b.t - a.t; });
   $("asof").textContent = P.length + " Bupa hospital policies (Queensland) · from PrivateHealth.gov.au" + (dates.length ? ", latest statement " + dates[0].d : "") + " · general information, not advice";
-  addMsg("bot", render("Hi! Choose products on the left, search the services in the table, or ask me anything about them, like \"which policies cover dental and heart under $250?\""));
+  loadChats();
+  startChat();
   var m = (location.hash || "").match(/p=([^&]*)/);
   var fromHash = m && m[1] ? m[1].split(",").map(function (x) { return "BUP_" + decodeURIComponent(x); }).filter(function (i) { return BYID[i]; }) : [];
   setSel(fromHash);
+  renderFavBtn();
   renderFind();
   if (location.protocol === "file:") setMode(false);
   else fetch("/api/info").then(function (r) { return r.json(); }).then(function (i) { setMode(!!i.ai); }).catch(function () { setMode(false); });
