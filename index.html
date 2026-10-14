@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hospital policy explorer</title>
+<style>
+  :root {
+    --bg:#ffffff; --panel:#f4f6fa; --card:#ffffff; --text:#1b2430; --muted:#667385; --border:#dde3ec;
+    --accent:#1b6ef3; --accent-text:#ffffff; --bot:#eef1f6; --hl:#fff6c9;
+    --c-fg:#17703f; --c-bg:#e3f4ea; --r-fg:#8f5400; --r-bg:#fdf0d8; --x-fg:#b3261e; --x-bg:#fbe6e4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#12161c; --panel:#1a1f27; --card:#1d222b; --text:#e8edf4; --muted:#93a0b2; --border:#2e3644;
+      --accent:#4b8dff; --accent-text:#0c1220; --bot:#242a35; --hl:#3b3817;
+      --c-fg:#5fd18f; --c-bg:#17362a; --r-fg:#f0b45a; --r-bg:#3a2e14; --x-fg:#ff8f87; --x-bg:#3d1f1d;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg);
+         color: var(--text); display: flex; flex-direction: column; }
+  button, select, input { font: inherit; color: inherit; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0 0 10px; }
+  .top { display: flex; align-items: center; gap: 14px; padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--panel); }
+  .top strong { font-size: 15px; white-space: nowrap; }
+  .top .sub { color: var(--muted); font-size: 12px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mtabs { display: none; gap: 4px; }
+  .mtabs button { padding: 5px 12px; border: 1px solid var(--border); background: var(--card); border-radius: 999px; cursor: pointer; }
+  .mtabs button.on { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+
+  main { flex: 1; min-height: 0; display: grid; grid-template-columns: 330px minmax(0, 1fr) 380px; }
+  .left, .center, .chat { min-height: 0; overflow: auto; }
+  .left { padding: 14px; border-right: 1px solid var(--border); background: var(--panel); display: flex; flex-direction: column; gap: 14px; }
+  .center { padding: 14px 18px; }
+  .chat { border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+  label.f { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
+  select, .ms-btn, .search { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); }
+  select:focus, .ms-btn:focus, .search:focus, #input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+  /* multi-select dropdown */
+  .ms { position: relative; }
+  .ms-btn { display: flex; justify-content: space-between; align-items: center; gap: 8px; cursor: pointer; text-align: left; }
+  .ms-btn .caret { color: var(--muted); }
+  .ms-pop { position: absolute; z-index: 20; left: 0; right: 0; top: calc(100% + 4px); background: var(--card);
+            border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.18); padding: 8px; }
+  .ms-pop[hidden] { display: none; }
+  .ms-search { width: 100%; padding: 7px 9px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); margin-bottom: 6px; }
+  .ms-list { max-height: 300px; overflow: auto; }
+  .ms-group { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); padding: 8px 6px 3px; }
+  .ms-item { display: flex; align-items: center; gap: 8px; padding: 5px 6px; border-radius: 6px; cursor: pointer; }
+  .ms-item:hover { background: var(--panel); }
+  .ms-item .r { margin-left: auto; color: var(--muted); font-size: 12px; white-space: nowrap; }
+  .ms-empty { padding: 10px 6px; color: var(--muted); }
+  .ms-foot { display: flex; justify-content: space-between; padding-top: 6px; border-top: 1px solid var(--border); margin-top: 6px; }
+
+  .row { display: flex; gap: 8px; margin-top: 8px; }
+  .btn { padding: 6px 11px; border: 1px solid var(--border); background: var(--card); border-radius: 8px; cursor: pointer; }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  .btn.primary:hover { color: var(--accent-text); opacity: .9; }
+  .btn.link { border: 0; background: none; color: var(--accent); padding: 2px 4px; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 4px 3px 10px; background: var(--bot); border-radius: 999px; font-size: 12px; }
+  .chip button { border: 0; background: none; cursor: pointer; color: var(--muted); font-size: 14px; line-height: 1; padding: 0 5px; }
+  .chip button:hover { color: var(--x-fg); }
+
+  .found { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 10px; }
+  .found .head { display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .res { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--border); }
+  .res:last-child { border-bottom: 0; }
+  .res .t { flex: 1; min-width: 0; }
+  .res .n { font-weight: 600; }
+  .res .m { color: var(--muted); font-size: 12px; }
+  .note { color: var(--muted); font-size: 12px; margin-top: 6px; }
+
+  /* badges */
+  .b { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .b i { font-style: normal; font-weight: 700; }
+  .b-c { color: var(--c-fg); background: var(--c-bg); }
+  .b-r { color: var(--r-fg); background: var(--r-bg); }
+  .b-x { color: var(--x-fg); background: var(--x-bg); }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; color: var(--muted); font-size: 12px; margin: 8px 0; }
+
+  /* center */
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .tabs button { padding: 8px 14px; border: 0; background: none; cursor: pointer; border-bottom: 2px solid transparent; color: var(--muted); }
+  .tabs button.on { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .toolbar .search { max-width: 360px; }
+  .toolbar label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+  .strip { background: var(--bot); border-radius: 10px; padding: 9px 12px; margin: 10px 0; }
+  .empty { text-align: center; padding: 50px 20px; color: var(--muted); }
+  .empty h3 { color: var(--text); margin: 0 0 6px; }
+  .tablewrap { overflow: auto; border: 1px solid var(--border); border-radius: 10px; max-height: calc(100vh - 250px); }
+  table.cmp { border-collapse: separate; border-spacing: 0; width: 100%; }
+  table.cmp th, table.cmp td { padding: 7px 10px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: middle; }
+  table.cmp thead th { position: sticky; top: 0; z-index: 3; background: var(--panel); vertical-align: top; min-width: 150px; }
+  table.cmp .corner, table.cmp tbody th { position: sticky; left: 0; z-index: 2; background: var(--card); min-width: 230px; max-width: 260px; font-weight: 500; }
+  table.cmp thead .corner { z-index: 4; background: var(--panel); }
+  table.cmp tr.meta td, table.cmp tr.meta th { background: var(--panel); font-weight: 600; }
+  table.cmp tr.hl td, table.cmp tr.hl th { background: var(--hl); }
+  table.cmp td.ask { cursor: pointer; }
+  table.cmp td.ask:hover { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .ph .tier { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .ph .nm { font-weight: 700; cursor: pointer; }
+  .ph .nm:hover { color: var(--accent); }
+  .ph .pr { color: var(--muted); font-weight: 400; }
+  .ph .rm { float: right; border: 0; background: none; cursor: pointer; color: var(--muted); font-size: 16px; line-height: 1; }
+  .ph .rm:hover { color: var(--x-fg); }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px; }
+  .pcard h3 { margin: 0 0 2px; font-size: 16px; }
+  .pcard .meta { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+  .pcard dl { margin: 0; } .pcard dt { font-weight: 600; margin-top: 9px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .pcard dd { margin: 2px 0 0; } .pcard ul { margin: 2px 0 0; padding-left: 18px; }
+
+  /* chat */
+  .chat .hd { padding: 10px 14px; border-bottom: 1px solid var(--border); background: var(--panel); }
+  .chat .hd .row1 { display: flex; align-items: center; gap: 8px; }
+  .chat .hd strong { flex: 1; }
+  .mode { font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: var(--accent); color: var(--accent-text); }
+  .mode.off { background: var(--r-bg); color: var(--r-fg); }
+  #scope { color: var(--muted); font-size: 12px; margin-top: 3px; }
+  #log { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+  .msg:has(table) { max-width: 100%; overflow-x: auto; }
+  .msg { max-width: 94%; padding: 8px 12px; border-radius: 14px; overflow-wrap: anywhere; }
+  .msg p { margin: 0 0 7px; } .msg p:last-child { margin-bottom: 0; }
+  .msg ul { margin: 0 0 7px; padding-left: 18px; } .msg ul:last-child { margin-bottom: 0; }
+  .bot { background: var(--bot); border-bottom-left-radius: 4px; align-self: flex-start; }
+  .user { background: var(--accent); color: var(--accent-text); border-bottom-right-radius: 4px; align-self: flex-end; }
+  .dots span { display: inline-block; width: 6px; height: 6px; margin-right: 3px; border-radius: 50%; background: var(--muted); animation: blink 1.2s infinite both; }
+  .dots span:nth-child(2) { animation-delay: .2s; } .dots span:nth-child(3) { animation-delay: .4s; }
+  @keyframes blink { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
+  table.mini { border-collapse: collapse; width: 100%; margin-top: 8px; background: var(--card); border-radius: 8px; overflow: hidden; font-size: 12.5px; }
+  table.mini th, table.mini td { padding: 5px 8px; border-bottom: 1px solid var(--border); text-align: left; }
+  table.mini td, table.mini thead th { white-space: nowrap; }
+  table.mini tbody th { min-width: 90px; }
+  table.mini thead th { background: var(--panel); color: var(--muted); font-weight: 600; }
+  table.mini tr:last-child td, table.mini tr:last-child th { border-bottom: 0; }
+  #sugg { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 8px; }
+  #sugg button { font-size: 12.5px; padding: 5px 10px; border-radius: 999px; cursor: pointer; border: 1px solid var(--accent); background: transparent; color: var(--accent); }
+  #sugg button:hover { background: var(--accent); color: var(--accent-text); }
+  #form { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--border); }
+  #input { flex: 1; min-width: 0; padding: 9px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--bg); }
+  #send { padding: 0 16px; border: 0; border-radius: 999px; background: var(--accent); color: var(--accent-text); font-weight: 600; cursor: pointer; }
+  #send:disabled { opacity: .5; cursor: default; }
+  .foot { padding: 0 12px 8px; font-size: 11px; color: var(--muted); text-align: center; }
+
+  /* narrower iframes: chat becomes a tab */
+  @media (max-width: 1100px) {
+    main { grid-template-columns: 310px minmax(0, 1fr); }
+    .mtabs { display: flex; }
+    .chat { display: none; grid-column: 2; border-left: 0; }
+    body.view-chat .chat { display: flex; }
+    body.view-chat .center { display: none; }
+  }
+  @media (max-width: 760px) {
+    main { grid-template-columns: minmax(0, 1fr); }
+    .left { border-right: 0; max-height: 46vh; }
+    body.view-chat .left { display: none; }
+    .chat { grid-column: 1; }
+  }
+</style>
+</head>
+<body>
+<div class="top">
+  <strong>Hospital policy explorer</strong>
+  <span class="sub" id="asof"></span>
+  <div class="mtabs"><button type="button" data-view="explore" class="on">Explore</button><button type="button" data-view="chat">Chat</button></div>
+</div>
+<main>
+  <aside class="left">
+    <section class="card">
+      <h2>Products</h2>
+      <div id="prodPicker"></div>
+      <div class="chips" id="selChips"></div>
+      <div class="row"><button type="button" class="btn" id="selAll">Select all</button><button type="button" class="btn" id="selNone">Clear</button></div>
+    </section>
+    <section class="card">
+      <h2>Find a policy</h2>
+      <label class="f">Must cover</label>
+      <div id="svcPicker"></div>
+      <label class="f" for="level">Cover level</label>
+      <select id="level">
+        <option value="c">Fully covered only</option>
+        <option value="cr">Covered or restricted</option>
+      </select>
+      <label class="f" for="maxPrem">Max monthly premium</label>
+      <select id="maxPrem">
+        <option value="">Any price</option><option value="120">$120 or less</option><option value="150">$150 or less</option>
+        <option value="200">$200 or less</option><option value="250">$250 or less</option><option value="300">$300 or less</option>
+        <option value="400">$400 or less</option>
+      </select>
+      <div class="found" id="found"></div>
+    </section>
+  </aside>
+
+  <section class="center">
+    <div class="tabs"><button type="button" data-tab="compare" class="on">Compare</button><button type="button" data-tab="details">Policy details</button></div>
+    <div id="tab-compare">
+      <div class="toolbar">
+        <input class="search" id="svcSearch" type="search" placeholder="Search services, e.g. knee replacement, dental, mental health" aria-label="Search services">
+        <label><input type="checkbox" id="diffOnly"> Differences only</label>
+      </div>
+      <div id="strip"></div>
+      <div class="legend">
+        <span><span class="b b-c"><i>✓</i> Covered</span></span>
+        <span><span class="b b-r"><i>R</i> Restricted</span> partly covers costs as a private patient in a public hospital</span>
+        <span><span class="b b-x"><i>✕</i> Not covered</span></span>
+      </div>
+      <div id="cmp"></div>
+    </div>
+    <div id="tab-details" hidden></div>
+  </section>
+
+  <aside class="chat">
+    <div class="hd">
+      <div class="row1"><strong>Ask about these products</strong><span class="mode off" id="mode">Offline</span></div>
+      <div id="scope"></div>
+    </div>
+    <div id="log" role="log" aria-live="polite"></div>
+    <div id="sugg"></div>
+    <form id="form" autocomplete="off">
+      <input id="input" type="text" maxlength="500" placeholder="Ask a question…" aria-label="Your question">
+      <button id="send" type="submit">Send</button>
+    </form>
+    <div class="foot" id="foot">General information only, not advice. Check details with Bupa.</div>
+  </aside>
+</main>
+
+<script>
+var DATA = {"services":["Assisted reproductive services","Back, neck and spine","Blood","Bone, joint and muscle","Brain and nervous system","Breast surgery (medically necessary)","Cataracts","Chemotherapy, radiotherapy and immunotherapy for cancer","Dental surgery","Diabetes management (excluding insulin pumps)","Dialysis for chronic kidney failure","Digestive system","Ear, nose and throat","Eye (not cataracts)","Gastrointestinal endoscopy","Gynaecology","Heart and vascular system","Hernia and appendix","Hospital psychiatric services","Implantation of hearing devices","Insulin pumps","Joint reconstructions","Joint replacements","Kidney and bladder","Lung and chest","Male reproductive system","Miscarriage and termination of pregnancy","Pain management","Pain management with device","Palliative care","Plastic and reconstructive surgery (medically necessary)","Podiatric surgery (provided by a registered podiatric surgeon – limited benefits)","Pregnancy and birth","Rehabilitation","Skin","Sleep studies","Tonsils, adenoids and grommets","Weight loss surgery"],"tiers":["Gold","Silver Plus","Bronze Plus","Bronze","Basic Plus","Basic","Reciprocal"],"policies":[{"id":"BUP_H73B_QRYL10","code":"BUP/H73B/QRYL10","name":"Gold Comprehensive Hospital $750 Excess","short":"Gold Comprehensive","tier":"Gold","premium":446.05,"excess":750.0,"excessMax":750.0,"noCopay":true,"covers":"only one person","state":"Queensland","waiting":["2 months for palliative care, rehabilitation and hospital psychiatric treatments, even if pre-existing","12 months for other pre-existing conditions","12 months for pregnancy and birth (obstetrics)","2 months for all other treatments"],"notes":["This policy exempts you from the Medicare Levy Surcharge.","This policy provides accident cover and benefits for travel or accommodation (outside of hospital) - check with your insurer for details."],"accommodation":"For accommodation we pay up to $50 per night to a limit of $150 per person per trip. Benefits are payable per return trip. Eligibility criteria apply. Contact Bupa for more information.","ambulance":"Ambulance cover is provided by the State government for Queensland residents (https://www.ambulance.qld.gov.au/). This includes cover whilst interstate.","ambulanceMore":"You are covered for the uncapped costs associated with emergency ambulance transport services (via air or road) including on-the-spot emergency attendances where the service is provided by a Bupa recognised ambulance service. The following ambulance services are recognised by Bupa: ACT Ambulance Service, Ambulance Service of NSW, Ambulance Victoria, Queensland Ambulance Service, South Australia Ambulance Service, St John Ambulance NT, St John Ambulance WA, and Ambulance Tasmania. If you are eligible to claim from another source, a benefit won't be paid by Bupa.","other":"Comprehensive hospital cover including pregnancy and birth and assisted reproductive services. Includes additional benefits such as the Accident Inclusion feature, uncapped emergency ambulance, Family In-Hospital Benefit and more. For more details on the product contact Bupa.","updated":"08 July 2026","url":"https://privatehealth.gov.au/dynamic/Premium/PHIS/BUP/H73B/QRYL10","svc":{"Assisted reproductive services":"c","Back, neck and spine":"c","Blood":"c","Bone, joint and muscle":"c","Brain and nervous system":"c","Breast surgery (medically necessary)":"c","Cataracts":"c","Chemotherapy, radiotherapy and immunotherapy for cancer":"c","Dental surgery":"c","Diabetes management (excluding insulin pumps)":"c","Dialysis for chronic kidney failure":"c","Digestive system":"c","Ear, nose and throat":"c","Eye (not cataracts)":"c","Gastrointestinal endoscopy":"c","Gynaecology":"c","Heart and vascular system":"c","Hernia and appendix":"c","Hospital psychiatric services":"c","Implantation of hearing devices":"c","Insulin pumps":"c","Joint reconstructions":"c","Joint replacements":"c","Kidney and bladder":"c","Lung and chest":"c","Male reproductive system":"c","Miscarriage and termination of pregnancy":"c","Pain management":"c","Pain management with device":"c","Palliative care":"c","Plastic and reconstructive surgery (medically necessary)":"c","Podiatric surgery (provided by a registered podiatric surgeon – limited benefits)":"c","Pregnancy and birth":"c","Rehabilitation":"c","Skin":"c","Sleep studies":"c","Tonsils, adenoids and grommets":"c","Weight loss surgery":"c"}},{"id":"BUP_H72D_QSHK10","code":"BUP/H72D/QSHK10","name":"Silver Plus Assured Hospital $750 Excess","short":"Silver Plus Assured","tier":"Silver Plus","premium":299.4,"excess":750.0,"excessMax":750.0,"noCopay":true,"covers":"only one person","state":"Queensland","waiting":["2 months for palliative care, rehabilitation and hospital psychiatric treatments, even if pre-existing","12 months for other pre-existing conditions","2 months for all other treatments"],"notes":["This policy exempts you from the Medicare Levy Surcharge.","This policy provides accident cover and benefits for travel or accommodation (outside of hospital) - check with your insurer for details."],"accommodation":"For accommodation we pay up to $50 per night, to a limit of $150 per person per trip. Benefits are payable per return trip. Eligibility criteria apply. Contact Bupa for more information.","ambulance":"Ambulance cover is provided by the State government for Queensland residents (https://www.ambulance.qld.gov.au/). This includes cover whilst interstate.","ambulanceMore":"You are covered for the uncapped costs associated with emergency ambulance transport services (via air or road) including on-the-spot emergency attendances where the service is provided by a Bupa recognised ambulance service. The following ambulance services are recognised by Bupa: ACT Ambulance Service, Ambulance Service of NSW, Ambulance Victoria, Queensland Ambulance Service, South Australia Ambulance Service, St John Ambulance NT, St John Ambulance WA, and Ambulance Tasmania. If you are eligible to claim from another source, a benefit won't be paid by Bupa.","other":"Hospital cover for a wide range of hospital treatments. Helps pay for both inpatient hospital and medical costs in both private and public hospitals across Australia for included services, without being covered for services you may not need. For more details or to purchase this product contact Bupa.","updated":"06 August 2026","url":"https://privatehealth.gov.au/dynamic/Premium/PHIS/BUP/H72D/QSHK10","svc":{"Back, neck and spine":"c","Blood":"c","Bone, joint and muscle":"c","Brain and nervous system":"c","Breast surgery (medically necessary)":"c","Cataracts":"c","Chemotherapy, radiotherapy and immunotherapy for cancer":"c","Dental surgery":"c","Diabetes management (excluding insulin pumps)":"c","Dialysis for chronic kidney failure":"c","Digestive system":"c","Ear, nose and throat":"c","Eye (not cataracts)":"c","Gastrointestinal endoscopy":"c","Gynaecology":"c","Heart and vascular system":"c","Hernia and appendix":"c","Implantation of hearing devices":"c","Insulin pumps":"c","Joint reconstructions":"c","Joint replacements":"c","Kidney and bladder":"c","Lung and chest":"c","Male reproductive system":"c","Miscarriage and termination of pregnancy":"c","Pain management":"c","Pain management with device":"c","Palliative care":"c","Plastic and reconstructive surgery (medically necessary)":"c","Podiatric surgery (provided by a registered podiatric surgeon – limited benefits)":"c","Rehabilitation":"c","Skin":"c","Sleep studies":"c","Tonsils, adenoids and grommets":"c","Hospital psychiatric services":"r","Assisted reproductive services":"x","Pregnancy and birth":"x","Weight loss surgery":"x"}},{"id":"BUP_H50C_QMVP10","code":"BUP/H50C/QMVP10","name":"Silver Plus Advanced Hospital $750 Excess","short":"Silver Plus Advanced","tier":"Silver Plus","premium":270.8,"excess":750.0,"excessMax":750.0,"noCopay":true,"covers":"only one person","state":"Queensland","waiting":["2 months for palliative care, rehabilitation and hospital psychiatric treatments, even if pre-existing","12 months for other pre-existing conditions","2 months for all other treatments"],"notes":["This policy exempts you from the Medicare Levy Surcharge.","This policy provides accident cover and benefits for travel or accommodation (outside of hospital) - check with your insurer for details."],"accommodation":"For accommodation we pay up to $50 per night to a limit of $150 per person per trip. Benefits are payable per return trip. Eligibility criteria apply. Contact Bupa for more information.","ambulance":"Ambulance cover is provided by the State government for Queensland residents (https://www.ambulance.qld.gov.au/). This includes cover whilst interstate.","ambulanceMore":"You are covered for the uncapped costs associated with emergency ambulance transport services (via air or road) including on-the-spot emergency attendances where the service is provided by a Bupa recognised ambulance service. The following ambulance services are recognised by Bupa: ACT Ambulance Service, Ambulance Service of NSW, Ambulance Victoria, Queensland Ambulance Service, South Australia Ambulance Service, St John Ambulance NT, St John Ambulance WA, and Ambulance Tasmania. If you are eligible to claim from another source, a benefit won't be paid by Bupa.","other":"This policy provides cover for a range of hospital treatments like insulin pumps, pain management with device and rehabilitation. Includes additional benefits such as the Accident Inclusion feature, uncapped emergency ambulance and more. For details on the product contact Bupa.","updated":"08 July 2026","url":"https://privatehealth.gov.au/dynamic/Premium/PHIS/BUP/H50C/QMVP10","svc":{"Back, neck and spine":"c","Blood":"c","Bone, joint and muscle":"c","Brain and nervous system":"c","Breast surgery (medically necessary)":"c","Cataracts":"c","Chemotherapy, radiotherapy and immunotherapy for cancer":"c","Dental surgery":"c","Diabetes management (excluding insulin pumps)":"c","Digestive system":"c","Ear, nose and throat":"c","Eye (not cataracts)":"c","Gastrointestinal endoscopy":"c","Gynaecology":"c","Heart and vascular system":"c","Hernia and appendix":"c","Implantation of hearing devices":"c","Insulin pumps":"c","Joint reconstructions":"c","Joint replacements":"c","Kidney and bladder":"c","Lung and chest":"c","Male reproductive system":"c","Miscarriage and termination of pregnancy":"c","Pain management":"c","Pain management with device":"c","Palliative care":"c","Plastic and reconstructive surgery (medically necessary)":"c","Podiatric surgery (provided by a registered podiatric surgeon – limited benefits)":"c","Rehabilitation":"c","Skin":"c","Sleep studies":"c","Tonsils, adenoids and grommets":"c","Hospital psychiatric services":"r","Assisted reproductive services":"x","Dialysis for chronic kidney failure":"x","Pregnancy and birth":"x","Weight loss surgery":"x"}},{"id":"BUP_H49C_QNAF10","code":"BUP/H49C/QNAF10","name":"Silver Plus Essential Hospital $750 Excess","short":"Silver Plus Essential","tier":"Silver Plus","premium":170.2,"excess":750.0,"excessMax":750.0,"noCopay":true,"covers":"only one person","state":"Queensland","waiting":["2 months for palliative care, rehabilitation and hospital psychiatric treatments, even if pre-existing","12 months for other pre-existing conditions","2 months for all other treatments"],"notes":["This policy exempts you from the Medicare Levy Surcharge.","This policy provides accident cover and benefits for travel or accommodation (outside of hospital) - check with your insurer for details."],"accommodation":"For accommodation we pay up to $50 per night, to a limit of $150 per person per trip. Benefits are payable per return trip. Eligibility criteria apply. Contact Bupa for more information.","ambulance":"Ambulance cover is provided by the State government for Queensland residents (https://www.ambulance.qld.gov.au/). This includes cover whilst interstate.","ambulanceMore":"You are covered for the uncapped costs associated with emergency ambulance transport services (via air or road) including on-the-spot emergency attendances where the service is provided by a Bupa recognised ambulance service. The following ambulance services are recognised by Bupa: ACT Ambulance Service, Ambulance Service of NSW, Ambulance Victoria, Queensland Ambulance Service, South Australia Ambulance Service, St John Ambulance NT, St John Ambulance WA, and Ambulance Tasmania. If you are eligible to claim from another source, a benefit won't be paid by Bupa.","other":"This policy provides cover for a range of hospital treatments like heart and vascular system, back, neck and spine, chemotherapy, radiotherapy and immunotherapy for cancer. Includes cover for emergency ambulance. For details on the product contact Bupa.","updated":"08 July 2026","url":"https://privatehealth.gov.au/dynamic/Premium/PHIS/BUP/H49C/QNAF10","svc":{"Back, neck and spine":"c","Blood":"c","Bone, joint and muscle":"c","Brain and nervous system":"c","Breast surgery (medically necessary)":"c","Chemotherapy, radiotherapy and immunotherapy for cancer":"c","Dental surgery":"c","Diabetes management (excluding insulin pumps)":"c","Digestive system":"c","Ear, nose and throat":"c","Eye (not cataracts)":"c","Gastrointestinal endoscopy":"c","Gynaecology":"c","Heart and vascular system":"c","Hernia and appendix":"c","Implantation of hearing devices":"c","Joint reconstructions":"c","Kidney and bladder":"c","Lung and chest":"c","Male reproductive system":"c","Miscarriage and termination of pregnancy":"c","Pain management":"c","Palliative care":"c","Plastic and reconstructive surgery (medically necessary)":"c","Podiatric surgery (provided by a registered podiatric surgeon – limited benefits)":"c","Rehabilitation":"c","Skin":"c","Sleep studies":"c","Tonsils, adenoids and grommets":"c","Hospital psychiatric services":"r","Assisted reproductive services":"x","Cataracts":"x","Dialysis for chronic kidney failure":"x","Insulin pumps":"x","Joint replacements":"x","Pain management with device":"x","Pregnancy and birth":"x","Weight loss surgery":"x"}},{"id":"BUP_H81C_QTSN10","code":"BUP/H81C/QTSN10","name":"Silver Plus Classic Hospital $750 Excess","short":"Silver Plus Classic","tier":"Silver Plus","premium":168.4,"excess":750.0,"excessMax":750.0,"noCopay":true,"covers":"only one person","state":"Queensland","waiting":["2 months for palliative care, rehabilitation and hospital psychiatric treatments, even if pre-existing","12 months for other pre-existing conditions","2 months for all other treatments"],"notes":["This policy exempts you from the Medicare Levy Surcharge.","This policy provides accident cover and benefits for travel or accommodation (outside of hospital) - check with your insurer for details."],"accommodation":"For accommodation we pay up to $50 per night, to a limit of $150 per person per trip. Benefits are payable per return trip. Eligibility criteria apply. Contact Bupa for more information.","ambulance":"Ambulance cover is provided by the State government for Queensland residents (https://www.ambulance.qld.gov.au/). This includes cover whilst interstate.","ambulanceMore":"You are covered for the uncapped costs associated with emergency ambulance transport services (via air or road) including on-the-spot emergency attendances where the service is provided by a Bupa recognised ambulance service. The following ambulance services are recognised by Bupa: ACT Ambulance Service, Ambulance Service of NSW, Ambulance Victoria, Queensland Ambulance Service, South Australia Ambulance Service, St John Ambulance NT, St John Ambulance WA, and Ambulance Tasmania. If you are eligible to claim from another source, a benefit won't be paid by Bupa.","other":"This policy provides cover for a range of hospital treatments like heart and vascular system, back, neck and spine, chemotherapy, radiotherapy and immunotherapy for cancer. Includes cover for emergency ambulance. For details on the product contact Bupa.","updated":"08 July 2026","url":"https://privatehealth.gov.au/dynamic/Premium/PHIS/BUP/H81C/QTSN10","svc":{"Back, neck and spine":"c","Blood":"c","Bone, joint and muscle":"c","Brain and nervous system":"c","Breast surgery (medically necessary)":"c","Chemotherapy, radiotherapy and immunotherapy for cancer":"c","Dental surgery":"c","Diabetes management (excluding insulin pumps)":"c","Digestive system":"c","Ear, nose and throat":"c","Eye (not cataracts)":"c","Gastrointestinal endoscopy":"c","Gynaecology":"c","Heart and vascular system":"c","Hernia and appendix":"c","Implantation of hearing devices":"c","Joint reconstructions":"c","Kidney and bladder":"c","Lung and chest":"c","Male reproductive system":"c","Miscarriage and termination of pregnancy":"c","Pain management":"c","Palliative care":"c","Plastic and reconstructive surgery (medically necessary)":"c","Podiatric surgery (provided by a registered podiatric surgeon – limited benefits)":"c","Skin":"c","Sleep studies":"c","Tonsils, adenoids and grommets":"c","Hospital psychiatric services":"r","Rehabilitation":"r","Assisted reproductive services":"x","Cataracts":"x","Dialysis for chronic kidney failure":"x","Insulin pumps":"x","Joint replacements":"x","Pain management with device":"x","Pregnancy and birth":"x","Weight loss surgery":"x"}},{"id":"BUP_H79C_QTLY10","code":"BUP/H79C/QTLY10","name":"Bronze Plus Advantage Hospital $750 Excess","short":"Bronze Plus Advantage","tier":"Bronze Plus","premium":164.45,"excess":750.0,"excessMax":750.0,"noCopay":true,"covers":"only one person","state":"Queensland","waiting":["2 months for palliative care, rehabilitation and hospital psychiatric treatments, even if pre-existing","12 months for other pre-existing conditions","2 months for all other treatments"],"notes":["This policy exempts you from the Medicare Levy Surcharge.","This policy provides accident cover and benefits for travel or accommodation (outside of hospital) - check with your insurer for details."],"accommodation":"For accommodation we pay up to $50 per night to a limit of $150 per person per trip. Benefits are payable per return trip. Eligibility criteria apply. Contact Bupa for more information.","ambulance":"Ambulance cover is provided by the State government for Queensland residents (https://www.ambulance.qld.gov.au/). This includes cover whilst interstate.","ambulanceMore":"You are covered for the uncapped costs associated with emergency ambulance transport services (via air or road) including on-the-spot emergency attendances where the service is provided by a Bupa recognised ambulance service. The following ambulance services are recognised by Bupa: ACT Ambulance Service, Ambulance Service of NSW, Ambulance Victoria, Queensland Ambulance Service, South Australia Ambulance Service, St John Ambulance NT, St John Ambulance WA, and Ambulance Tasmania. If you are eligible to claim from another source, a benefit won't be paid by Bupa.","other":"This policy provides cover for a range of hospital treatments like back neck and spine, plastic and reconstructive surgery and more. Includes cover for uncapped emergency ambulance. For details on the product contact Bupa.","updated":null,"url":"https://privatehealth.gov.au/dynamic/Premium/PHIS/BUP/H79C/QTLY10","svc":{"Back, neck and spine":"c","Blood":"c","Bone, joint and muscle":"c","Brain and nervous system":"c","Breast surgery (medically necessary)":"c","Chemotherapy, radiotherapy and immunotherapy for cancer":"c","Dental surgery":"c","Diabetes management (excluding insulin pumps)":"c","Digestive system":"c","Ear, nose and throat":"c","Eye (not cataracts)":"c","Gastrointestinal endoscopy":"c","Gynaecology":"c","Hernia and appendix":"c","Joint reconstructions":"c","Kidney and bladder":"c","Lung and chest":"c","Male reproductive system":"c","Miscarriage and termination of pregnancy":"c","Pain management":"c","Palliative care":"c","Plastic and reconstructive surgery (medically necessary)":"c","Podiatric surgery (provided by a registered podiatric surgeon – limited benefits)":"c","Skin":"c","Sleep studies":"c","Tonsils, adenoids and grommets":"c","Hospital psychiatric services":"r","Rehabilitation":"r","Assisted reproductive services":"x","Cataracts":"x","Dialysis for chronic kidney failure":"x","Heart and vascular system":"x","Implantation of hearing devices":"x","Insulin pumps":"x","Joint replacements":"x","Pain management with device":"x","Pregnancy and birth":"x","Weight loss surgery":"x"}},{"id":"BUP_H80C_QTPG10","code":"BUP/H80C/QTPG10","name":"Bronze Plus Select Hospital $750 Excess","short":"Bronze Plus Select","tier":"Bronze Plus","premium":140.4,"excess":750.0,"excessMax":750.0,"noCopay":true,"covers":"only one person","state":"Queensland","waiting":["2 months for palliative care, rehabilitation and hospital psychiatric treatments, even if pre-existing","12 months for other pre-existing conditions","2 months for all other treatments"],"notes":["This policy exempts you from the Medicare Levy Surcharge.","This policy provides accident cover and benefits for travel or accommodation (outside of hospital) - check with your insurer for details."],"accommodation":"For accommodation we pay up to $50 per night to a limit of $150 per person per trip. Benefits are payable per return trip. Eligibility criteria apply. Contact Bupa for more information.","ambulance":"Ambulance cover is provided by the State government for Queensland residents (https://www.ambulance.qld.gov.au/). This includes cover whilst interstate.","ambulanceMore":"You are covered for the uncapped costs associated with emergency ambulance transport services (via air or road) including on-the-spot emergency attendances where the service is provided by a Bupa recognised ambulance service. The following ambulance services are recognised by Bupa: ACT Ambulance Service, Ambulance Service of NSW, Ambulance Victoria, Queensland Ambulance Service, South Australia Ambulance Service, St John Ambulance NT, St John Ambulance WA, and Ambulance Tasmania. If you are eligible to claim from another source, a benefit won't be paid by Bupa.","other":"This policy provides cover for a range of hospital treatments like chemotherapy, radiotherapy and immunotherapy for cancer and more. Includes cover for uncapped emergency ambulance. For details on the product contact Bupa.","updated":null,"url":"https://privatehealth.gov.au/dynamic/Premium/PHIS/BUP/H80C/QTPG10","svc":{"Blood":"c","Bone, joint and muscle":"c","Brain and nervous system":"c","Breast surgery (medically necessary)":"c","Chemotherapy, radiotherapy and immunotherapy for cancer":"c","Dental surgery":"c","Diabetes management (excluding insulin pumps)":"c","Digestive system":"c","Ear, nose and throat":"c","Eye (not cataracts)":"c","Gastrointestinal endoscopy":"c","Gynaecology":"c","Hernia and appendix":"c","Joint reconstructions":"c","Kidney and bladder":"c","Lung and chest":"c","Male reproductive system":"c","Miscarriage and termination of pregnancy":"c","Pain management":"c","Palliative care":"c","Podiatric surgery (provided by a registered podiatric surgeon – limited benefits)":"c","Skin":"c","Sleep studies":"c","Tonsils, adenoids and grommets":"c","Hospital psychiatric services":"r","Rehabilitation":"r","Assisted reproductive services":"x","Back, neck and spine":"x","Cataracts":"x","Dialysis for chronic kidney failure":"x","Heart and vascular system":"x","Implantation of hearing devices":"x","Insulin pumps":"x","Joint replacements":"x","Pain management with device":"x","Plastic and reconstructive surgery (medically necessary)":"x","Pregnancy and birth":"x","Weight loss surgery":"x"}},{"id":"BUP_H48C_QMQW10","code":"BUP/H48C/QMQW10","name":"Bronze Plus Simple Hospital $750 Excess","short":"Bronze Plus Simple","tier":"Bronze Plus","premium":140.3,"excess":750.0,"excessMax":750.0,"noCopay":true,"covers":"only one person","state":"Queensland","waiting":["2 months for palliative care, rehabilitation and hospital psychiatric treatments, even if pre-existing","12 months for other pre-existing conditions","2 months for all other treatments"],"notes":["This policy exempts you from the Medicare Levy Surcharge.","This policy provides accident cover and benefits for travel or accommodation (outside of hospital) - check with your insurer for details."],"accommodation":"For accommodation we pay up to $50 per night to a limit of $150 per person per trip. Benefits are payable per return trip. Eligibility criteria apply. Contact Bupa for more information.","ambulance":"Ambulance cover is provided by the State government for Queensland residents (https://www.ambulance.qld.gov.au/). This includes cover whilst interstate.","ambulanceMore":"You are covered for the uncapped costs associated with emergency ambulance transport services (via air or road) including on-the-spot emergency attendances where the service is provided by a Bupa recognised ambulance service. The following ambulance services are recognised by Bupa: ACT Ambulance Service, Ambulance Service of NSW, Ambulance Victoria, Queensland Ambulance Service, South Australia Ambulance Service, St John Ambulance NT, St John Ambulance WA, and Ambulance Tasmania. If you are eligible to claim from another source, a benefit won't be paid by Bupa.","other":"This policy provides cover for a range of hospital treatments like chemotherapy, radiotherapy and immunotherapy for cancer and more. Includes cover for capped emergency ambulance. For details on the product contact Bupa.","updated":"08 July 2026","url":"https://privatehealth.gov.au/dynamic/Premium/PHIS/BUP/H48C/QMQW10","svc":{"Blood":"c","Bone, joint and muscle":"c","Brain and nervous system":"c","Breast surgery (medically necessary)":"c","Chemotherapy, radiotherapy and immunotherapy for cancer":"c","Dental surgery":"c","Diabetes management (excluding insulin pumps)":"c","Digestive system":"c","Ear, nose and throat":"c","Eye (not cataracts)":"c","Gastrointestinal endoscopy":"c","Gynaecology":"c","Hernia and appendix":"c","Joint reconstructions":"c","Kidney and bladder":"c","Lung and chest":"c","Male reproductive system":"c","Miscarriage and termination of pregnancy":"c","Pain management":"c","Podiatric surgery (provided by a registered podiatric surgeon – limited benefits)":"c","Skin":"c","Sleep studies":"c","Tonsils, adenoids and grommets":"c","Hospital psychiatric services":"r","Palliative care":"r","Rehabilitation":"r","Assisted reproductive services":"x","Back, neck and spine":"x","Cataracts":"x","Dialysis for chronic kidney failure":"x","Heart and vascular system":"x","Implantation of hearing devices":"x","Insulin pumps":"x","Joint replacements":"x","Pain management with device":"x","Plastic and reconstructive surgery (medically necessary)":"x","Pregnancy and birth":"x","Weight loss surgery":"x"}},{"id":"BUP_H78C_QTIS10","code":"BUP/H78C/QTIS10","name":"Bronze Hospital $750 Excess","short":"Bronze","tier":"Bronze","premium":132.85,"excess":750.0,"excessMax":750.0,"noCopay":true,"covers":"only one person","state":"Queensland","waiting":["2 months for palliative care, rehabilitation and hospital psychiatric treatments, even if pre-existing","12 months for other pre-existing conditions","2 months for all other treatments"],"notes":["This policy exempts you from the Medicare Levy Surcharge.","This policy provides accident cover and benefits for travel or accommodation (outside of hospital) - check with your insurer for details."],"accommodation":"For accommodation we pay up to $50 per night to a limit of $150 per person per trip. Benefits are payable per return trip. Eligibility criteria apply. Contact Bupa for more information.","ambulance":"Ambulance cover is provided by the State government for Queensland residents (https://www.ambulance.qld.gov.au/). This includes cover whilst interstate.","ambulanceMore":"You are covered for the uncapped costs associated with emergency ambulance transport services (via air or road) including on-the-spot emergency attendances where the service is provided by a Bupa recognised ambulance service. The following ambulance services are recognised by Bupa: ACT Ambulance Service, Ambulance Service of NSW, Ambulance Victoria, Queensland Ambulance Service, South Australia Ambulance Service, St John Ambulance NT, St John Ambulance WA, and Ambulance Tasmania. If you are eligible to claim from another source, a benefit won't be paid by Bupa.","other":"This policy provides cover for a range of hospital treatments like chemotherapy, radiotherapy and immunotherapy for cancer and more. Includes cover for uncapped emergency ambulance. For details on the product contact Bupa.","updated":"08 July 2026","url":"https://privatehealth.gov.au/dynamic/Premium/PHIS/BUP/H78C/QTIS10","svc":{"Bone, joint and muscle":"c","Brain and nervous system":"c","Breast surgery (medically necessary)":"c","Chemotherapy, radiotherapy and immunotherapy for cancer":"c","Diabetes management (excluding insulin pumps)":"c","Digestive system":"c","Ear, nose and throat":"c","Eye (not cataracts)":"c","Gastrointestinal endoscopy":"c","Gynaecology":"c","Hernia and appendix":"c","Joint reconstructions":"c","Kidney and bladder":"c","Male reproductive system":"c","Miscarriage and termination of pregnancy":"c","Pain management":"c","Skin":"c","Tonsils, adenoids and grommets":"c","Hospital psychiatric services":"r","Palliative care":"r","Rehabilitation":"r","Assisted reproductive services":"x","Back, neck and spine":"x","Blood":"x","Cataracts":"x","Dental surgery":"x","Dialysis for chronic kidney failure":"x","Heart and vascular system":"x","Implantation of hearing devices":"x","Insulin pumps":"x","Joint replacements":"x","Lung and chest":"x","Pain management with device":"x","Plastic and reconstructive surgery (medically necessary)":"x","Podiatric surgery (provided by a registered podiatric surgeon – limited benefits)":"x","Pregnancy and birth":"x","Sleep studies":"x","Weight loss surgery":"x"}},{"id":"BUP_H47B_QKVL10","code":"BUP/H47B/QKVL10","name":"Basic Plus Starter Hospital $750 Excess","short":"Basic Plus Starter","tier":"Basic Plus","premium":124.95,"excess":750.0,"excessMax":750.0,"noCopay":true,"covers":"only one person","state":"Queensland","waiting":["2 months for palliative care, rehabilitation and hospital psychiatric treatments, even if pre-existing","12 months for other pre-existing conditions","2 months for all other treatments"],"notes":["This policy exempts you from the Medicare Levy Surcharge.","This policy provides accident cover and benefits for travel or accommodation (outside of hospital) - check with your insurer for details."],"accommodation":"For accommodation we pay up to $50 per night, to a limit of $150 per person per trip. Benefits are payable per return trip. Eligibility criteria apply. Contact Bupa for more information.","ambulance":"Ambulance cover is provided by the State government for Queensland residents (https://www.ambulance.qld.gov.au/). This includes cover whilst interstate.","ambulanceMore":"You are covered for the uncapped costs associated with emergency ambulance transport services (via air or road) including on-the-spot emergency attendances where the service is provided by a Bupa recognised ambulance service. The following ambulance services are recognised by Bupa: ACT Ambulance Service, Ambulance Service of NSW, Ambulance Victoria, Queensland Ambulance Service, South Australia Ambulance Service, St John Ambulance NT, St John Ambulance WA, and Ambulance Tasmania. If you are eligible to claim from another source, a benefit won't be paid by Bupa.","other":"Cover for limited hospital services to help protect you from the unexpected. For more details on the product contact Bupa.","updated":"08 July 2026","url":"https://privatehealth.gov.au/dynamic/Premium/PHIS/BUP/H47B/QKVL10","svc":{"Dental surgery":"c","Gastrointestinal endoscopy":"c","Gynaecology":"c","Hernia and appendix":"c","Joint reconstructions":"c","Miscarriage and termination of pregnancy":"c","Tonsils, adenoids and grommets":"c","Hospital psychiatric services":"r","Palliative care":"r","Rehabilitation":"r","Assisted reproductive services":"x","Back, neck and spine":"x","Blood":"x","Bone, joint and muscle":"x","Brain and nervous system":"x","Breast surgery (medically necessary)":"x","Cataracts":"x","Chemotherapy, radiotherapy and immunotherapy for cancer":"x","Diabetes management (excluding insulin pumps)":"x","Dialysis for chronic kidney failure":"x","Digestive system":"x","Ear, nose and throat":"x","Eye (not cataracts)":"x","Heart and vascular system":"x","Implantation of hearing devices":"x","Insulin pumps":"x","Joint replacements":"x","Kidney and bladder":"x","Lung and chest":"x","Male reproductive system":"x","Pain management":"x","Pain management with device":"x","Plastic and reconstructive surgery (medically necessary)":"x","Podiatric surgery (provided by a registered podiatric surgeon – limited benefits)":"x","Pregnancy and birth":"x","Skin":"x","Sleep studies":"x","Weight loss surgery":"x"}},{"id":"BUP_H31_QCTH10","code":"BUP/H31/QCTH10","name":"Reciprocal Health Cover - Basic","short":"Reciprocal Health Cover - Basic","tier":"Reciprocal","premium":114.35,"excess":500.0,"excessMax":500.0,"noCopay":true,"covers":"only one person","state":"Queensland","waiting":["2 months for palliative care, rehabilitation and hospital psychiatric treatments, even if pre-existing","12 months for other pre-existing conditions","2 months for all other treatments"],"notes":["This policy exempts you from the Medicare Levy Surcharge.","This policy does not provide accident cover or benefits for travel and accommodation (outside of hospital)."],"accommodation":"","ambulance":"Ambulance cover is provided by the State government for Queensland residents (https://www.ambulance.qld.gov.au/). This includes cover whilst interstate.","ambulanceMore":"","other":"This cover may assist in reducing or avoiding the payment of the Medicare Levy Surcharge. For more details, see bupa.com.au.","updated":"08 July 2026","url":"https://privatehealth.gov.au/dynamic/Premium/PHIS/BUP/H31/QCTH10","svc":{"Hospital psychiatric services":"r","Palliative care":"r","Rehabilitation":"r","Assisted reproductive services":"x","Back, neck and spine":"x","Blood":"x","Bone, joint and muscle":"x","Brain and nervous system":"x","Breast surgery (medically necessary)":"x","Cataracts":"x","Chemotherapy, radiotherapy and immunotherapy for cancer":"x","Dental surgery":"x","Diabetes management (excluding insulin pumps)":"x","Dialysis for chronic kidney failure":"x","Digestive system":"x","Ear, nose and throat":"x","Eye (not cataracts)":"x","Gastrointestinal endoscopy":"x","Gynaecology":"x","Heart and vascular system":"x","Hernia and appendix":"x","Implantation of hearing devices":"x","Insulin pumps":"x","Joint reconstructions":"x","Joint replacements":"x","Kidney and bladder":"x","Lung and chest":"x","Male reproductive system":"x","Miscarriage and termination of pregnancy":"x","Pain management":"x","Pain management with device":"x","Plastic and reconstructive surgery (medically necessary)":"x","Podiatric surgery (provided by a registered podiatric surgeon – limited benefits)":"x","Pregnancy and birth":"x","Skin":"x","Sleep studies":"x","Tonsils, adenoids and grommets":"x","Weight loss surgery":"x"}},{"id":"BUP_H46B_QLAF10","code":"BUP/H46B/QLAF10","name":"Basic Accident Only Hospital $750 Excess","short":"Basic Accident Only","tier":"Basic","premium":112.4,"excess":750.0,"excessMax":750.0,"noCopay":true,"covers":"only one person","state":"Queensland","waiting":["2 months for palliative care, rehabilitation and hospital psychiatric treatments, even if pre-existing","12 months for other pre-existing conditions","2 months for all other treatments"],"notes":["This policy exempts you from the Medicare Levy Surcharge.","This policy provides accident cover and benefits for travel or accommodation (outside of hospital) - check with your insurer for details."],"accommodation":"For accommodation we pay up to $50 per night to a limit of $150 per person per trip. Benefits are payable per return trip. Eligibility criteria apply. Contact Bupa for more information.","ambulance":"Ambulance cover is provided by the State government for Queensland residents (https://www.ambulance.qld.gov.au/). This includes cover whilst interstate.","ambulanceMore":"You are covered for the uncapped costs associated with emergency ambulance transport services (via air or road) including on-the-spot emergency attendances where the service is provided by a Bupa recognised ambulance service. The following ambulance services are recognised by Bupa: ACT Ambulance Service, Ambulance Service of NSW, Ambulance Victoria, Queensland Ambulance Service, South Australia Ambulance Service, St John Ambulance NT, St John Ambulance WA, and Ambulance Tasmania. If you are eligible to claim from another source, a benefit won't be paid by Bupa.","other":"Cover for limited hospital services to help protect you from the unexpected. For more details on the product contact Bupa.","updated":"08 July 2026","url":"https://privatehealth.gov.au/dynamic/Premium/PHIS/BUP/H46B/QLAF10","svc":{"Hospital psychiatric services":"r","Palliative care":"r","Rehabilitation":"r","Assisted reproductive services":"x","Back, neck and spine":"x","Blood":"x","Bone, joint and muscle":"x","Brain and nervous system":"x","Breast surgery (medically necessary)":"x","Cataracts":"x","Chemotherapy, radiotherapy and immunotherapy for cancer":"x","Dental surgery":"x","Diabetes management (excluding insulin pumps)":"x","Dialysis for chronic kidney failure":"x","Digestive system":"x","Ear, nose and throat":"x","Eye (not cataracts)":"x","Gastrointestinal endoscopy":"x","Gynaecology":"x","Heart and vascular system":"x","Hernia and appendix":"x","Implantation of hearing devices":"x","Insulin pumps":"x","Joint reconstructions":"x","Joint replacements":"x","Kidney and bladder":"x","Lung and chest":"x","Male reproductive system":"x","Miscarriage and termination of pregnancy":"x","Pain management":"x","Pain management with device":"x","Plastic and reconstructive surgery (medically necessary)":"x","Podiatric surgery (provided by a registered podiatric surgeon – limited benefits)":"x","Pregnancy and birth":"x","Skin":"x","Sleep studies":"x","Tonsils, adenoids and grommets":"x","Weight loss surgery":"x"}}]};
+
+/* =========================================================================
+   Data + text helpers (no DOM)
+   ========================================================================= */
+var P = DATA.policies, SERVICES = DATA.services, BYID = {};
+P.forEach(function (p) { BYID[p.id] = p; });
+var LABEL = { c: "Covered", r: "Restricted", x: "Not covered" };
+var SYMBOL = { c: "✓", r: "R", x: "✕" };
+
+function norm(s) {
+  return String(s).toLowerCase().replace(/[‘’]/g, "'").replace(/[^a-z0-9$'\s-]/g, " ").replace(/\s+/g, " ").trim();
+}
+function stem(w) {
+  w = w.replace(/'s$/, "");
+  if (w.length > 3 && /ies$/.test(w)) return w.slice(0, -3) + "y";
+  if (w.length > 3 && /s$/.test(w) && !/ss$/.test(w)) w = w.slice(0, -1);
+  if (w.length > 6) w = w.replace(/(ion|ive)$/, "");
+  return w;
+}
+function stems(s) { return norm(s).split(" ").filter(Boolean).map(stem); }
+function escRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+function escHtml(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+function lc(s) { return s.charAt(0).toLowerCase() + s.slice(1); }
+function money(n) { return "$" + n.toFixed(2); }
+function sortPrem(a) { return a.slice().sort(function (x, y) { return x.premium - y.premium; }); }
+function shorts(a) { return a.map(function (p) { return p.short; }); }
+function joinList(a) { return a.length <= 1 ? (a[0] || "") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1]; }
+function bullets(a) { return a.map(function (x) { return "- " + x; }).join("\n"); }
+function groupBy(a, fn) {
+  var m = {}, order = [];
+  a.forEach(function (x) { var k = fn(x); if (!(k in m)) { m[k] = []; order.push(k); } m[k].push(x); });
+  return order.map(function (k) { return { key: k, items: m[k] }; });
+}
+function scopeOf(ids) {
+  var a = (ids || []).map(function (i) { return BYID[i]; }).filter(Boolean);
+  return a.length ? a : P.slice();
+}
+
+/* ---- service matching (everyday words -> official service names) ---- */
+var GENERIC = {};
+"surgery system management service treatment care hospital and of the a in for to not medically necessary with by provided registered limited benefit excluding device".split(" ")
+  .forEach(function (w) { GENERIC[w] = 1; });
+
+var SYN = {
+  "pregnancy and birth": ["pregnan", "birth", "maternity", "baby", "babies", "labour", "labor", "obstetric", "antenatal", "delivery", "caesarean", "c-section"],
+  "miscarriage and termination of pregnancy": ["miscarr", "terminat", "abortion"],
+  "assisted reproductive services": ["ivf!", "fertil", "egg freez", "embryo"],
+  "cataracts": ["cataract"],
+  "eye": ["eye!", "glaucoma", "retina", "vision", "lasik"],
+  "dialysis for chronic kidney failure": ["dialysis", "kidney failure"],
+  "kidney and bladder": ["kidney stone", "bladder", "urinar", "kidney"],
+  "insulin pumps": ["insulin pump"],
+  "diabetes management": ["diabet"],
+  "weight loss surgery": ["weight loss", "bariatric", "gastric", "obesity", "lap band"],
+  "joint replacements": ["knee replace", "hip replace", "shoulder replace", "joint replace", "knee!", "hip!"],
+  "joint reconstructions": ["acl!", "cruciate", "knee reconstruct", "ligament"],
+  "breast surgery": ["breast", "mastectomy"],
+  "plastic and reconstructive surgery": ["plastic", "cosmetic", "reconstructive"],
+  "heart and vascular system": ["heart", "cardi", "bypass", "stent", "pacemaker", "vascular", "varicose", "angio"],
+  "back, neck and spine": ["back!", "neck!", "spine", "spinal", "disc!", "sciatica", "scoliosis"],
+  "bone, joint and muscle": ["bone", "muscle", "fracture", "broken", "arthroscop", "tendon"],
+  "brain and nervous system": ["brain", "nervous", "stroke", "epilep", "neuro"],
+  "blood": ["blood", "anaemi", "anemi", "haemophil"],
+  "chemotherapy, radiotherapy and immunotherapy for cancer": ["chemo", "radiother", "immunother", "cancer", "oncolog", "radiation"],
+  "dental surgery": ["dental", "tooth", "teeth", "wisdom"],
+  "digestive system": ["digest", "bowel", "stomach", "gallbladder", "gall stone", "liver", "colon!", "reflux"],
+  "gastrointestinal endoscopy": ["endoscop", "colonoscop", "gastroscop"],
+  "implantation of hearing devices": ["hearing", "cochlear"],
+  "gynaecology": ["gynae", "hysterectom", "uterus", "ovar", "endometrio", "womb"],
+  "hernia and appendix": ["hernia", "appendi", "appendec"],
+  "lung and chest": ["lung", "chest", "asthma", "pneumonia", "respirat"],
+  "male reproductive system": ["prostate", "vasectom", "testic", "circumcis", "male reproduct"],
+  "pain management": ["pain"],
+  "pain management with device": ["pain stimulat", "spinal cord stimulat", "stimulator", "pain device", "pain pump"],
+  "palliative care": ["palliat", "end of life", "hospice"],
+  "podiatric surgery": ["podiatr", "foot!", "feet!", "bunion"],
+  "rehabilitation": ["rehab"],
+  "skin": ["skin!", "mole!", "moles!", "dermat", "melanoma"],
+  "sleep studies": ["sleep", "apnoea", "apnea", "snoring"],
+  "tonsils, adenoids and grommets": ["tonsil", "adenoid", "grommet"],
+  "hospital psychiatric services": ["psychiatr", "mental", "depress", "anxiety", "psycholog"],
+  "ear, nose and throat": ["sinus", "ear!", "ears!", "nose!", "throat!"]
+};
+
+var SVC = SERVICES.map(function (n) {
+  var base = n.replace(/\s*\(.*?\)\s*/g, " ").replace(/\s+/g, " ").trim();
+  var toks = {};
+  stems(base).forEach(function (t) { toks[t] = 1; });
+  var syn = (SYN[base.toLowerCase()] || []).map(function (s) {
+    var whole = /!$/.test(s), raw = s.replace(/!$/, "");
+    return { raw: raw, whole: whole, re: new RegExp("\\b" + escRe(raw) + (whole ? "\\b" : "")) };
+  });
+  return { name: n, base: base, toks: Object.keys(toks), syn: syn };
+});
+var SVCBY = {};
+SVC.forEach(function (s) { SVCBY[s.name] = s; });
+
+/* live-search match for the table and the picker (partial words allowed) */
+function svcMatch(s, q) {
+  q = norm(q);
+  if (!q) return true;
+  if (s.name.toLowerCase().indexOf(q) >= 0) return true;
+  var qs = stems(q);
+  if (qs.length && qs.every(function (w) { return s.toks.some(function (tk) { return tk.indexOf(w) === 0; }); })) return true;
+  return s.syn.some(function (x) { return x.re.test(q) || (q.length >= 3 && x.raw.indexOf(q) === 0); });
+}
+
+function findServices(t, qs) {
+  var qset = {};
+  qs.forEach(function (q) { qset[q] = 1; });
+  var scored = SVC.map(function (s) {
+    var sc = 0, hits = 0;
+    s.toks.forEach(function (tk) { if (qset[tk]) sc += GENERIC[tk] ? 0.4 : 1; });
+    s.syn.forEach(function (x) { if (x.re.test(t) && hits < 2) { sc += 1.2; hits++; } });
+    return { s: s, sc: sc };
+  }).filter(function (x) { return x.sc >= 1; }).sort(function (a, b) { return b.sc - a.sc; });
+  if (!scored.length) return [];
+  var top = scored[0].sc;
+  return scored.filter(function (x) { return top - x.sc <= 0.25; }).map(function (x) { return x.s; });
+}
+
+/* one service, several services ("dental and heart"), or an ambiguous word ("joint") */
+function resolveServices(q) {
+  var t = norm(q), qs = stems(q), whole = findServices(t, qs);
+  var parts = t.split(/\s*(?:\band\b|\bplus\b|&|,|\bas well as\b)\s*/).filter(function (x) { return stems(x).length; });
+  if (parts.length > 1) {
+    var set = [], amb = [];
+    parts.forEach(function (p) {
+      var c = findServices(p, stems(p));
+      if (c.length === 1) { if (set.indexOf(c[0]) < 0) set.push(c[0]); }
+      else if (c.length > 1) { c.forEach(function (x) { if (amb.indexOf(x) < 0) amb.push(x); }); }
+    });
+    if (set.length) return { names: set, ambiguous: [] };
+    if (amb.length) return { names: [], ambiguous: amb };
+  }
+  return whole.length > 1 ? { names: [], ambiguous: whole } : { names: whole, ambiguous: [] };
+}
+
+/* ---- facts about a policy ---- */
+function excessText(p) {
+  if (p.excess == null) return "I couldn't find the excess for " + p.short + ".";
+  var s = "an excess of **$" + p.excess + " per admission**";
+  if (p.excessMax) s += ", capped at **$" + p.excessMax + " per person and per policy each year**";
+  return s + (p.noCopay ? ", with no co-payments" : "");
+}
+function waitingFor(p, s) {
+  var toks = s.toks.filter(function (x) { return !GENERIC[x]; });
+  for (var i = 0; i < p.waiting.length; i++) {
+    if (/all other/i.test(p.waiting[i])) continue;
+    var bs = stems(p.waiting[i]);
+    if (toks.some(function (x) { return bs.indexOf(x) >= 0; })) return p.waiting[i];
+  }
+  return null;
+}
+function generalWaiting(p) {
+  var o = p.waiting.filter(function (w) { return /all other/i.test(w); })[0];
+  var pre = p.waiting.filter(function (w) { return /pre-?existing/i.test(w) && !/palliative|even if/i.test(w); })[0];
+  var parts = [o, pre].filter(Boolean).map(lc);
+  return parts.length ? parts.join(", and ") : p.waiting.map(lc).join("; ");
+}
+function waitText(p, s) { return waitingFor(p, s) || generalWaiting(p); }
+function ambSentence(p) {
+  return ((p.other || "").match(/[^.]*ambulance[^.]*\./gi) || []).map(function (x) { return x.trim(); }).join(" ");
+}
+function parenNote(s) {
+  var m = s.name.match(/\((.*?)\)/);
+  if (!m) return "";
+  var x = m[1].trim();
+  if (/medically necessary/i.test(x)) return "That's only when it's medically necessary, so purely cosmetic work wouldn't be covered.";
+  if (/^(not|excluding) /i.test(x)) return "That excludes " + x.replace(/^(not|excluding) /i, "") + ".";
+  return "";
+}
+function relatedNotes(p, s, qs) {
+  var qset = {}, out = [];
+  qs.forEach(function (q) { qset[q] = 1; });
+  SVC.forEach(function (o) {
+    if (o === s) return;
+    var a = s.base.toLowerCase(), b = o.base.toLowerCase();
+    var prefix = b.indexOf(a + " ") === 0 || a.indexOf(b + " ") === 0;
+    var shared = o.toks.some(function (tk) { return !GENERIC[tk] && qset[tk] && s.toks.indexOf(tk) >= 0; });
+    if (prefix || shared) out.push("Just so you know, **" + o.name + "** is listed separately as " + LABEL[p.svc[o.name]].toLowerCase() + ".");
+  });
+  return out;
+}
+function counts(p) {
+  var c = { c: 0, r: 0, x: 0 };
+  SERVICES.forEach(function (n) { c[p.svc[n]]++; });
+  return c;
+}
+
+/* ---- follow-up suggestions ---- */
+var NEXT_ONE = {
+  service: ["Waiting periods?", "What's the excess?", "What's not covered?"],
+  excess: ["Waiting periods?", "What's covered?", "Ambulance cover?"],
+  waiting: ["What's the excess?", "What's covered?", "What's not covered?"],
+  covered: ["What's not covered?", "What's the excess?", "Waiting periods?"],
+  premium: ["What's the excess?", "What's covered?", "Waiting periods?"],
+  other: ["What's covered?", "What's the excess?", "Is dental covered?"],
+  fallback: ["What's covered?", "What's the excess?", "Is dental covered?"]
+};
+var NEXT_MANY = {
+  service: ["Which is cheapest?", "What's different between them?", "Compare excess"],
+  which: ["Which is cheapest?", "Compare excess", "What's different between them?"],
+  premium: ["Which cover dental?", "Compare excess", "What's different between them?"],
+  excess: ["Waiting periods?", "Which is cheapest?", "What's different between them?"],
+  waiting: ["Compare excess", "Which is cheapest?", "Which cover pregnancy?"],
+  covered: ["Which is cheapest?", "Which cover pregnancy?", "What's different between them?"],
+  compare: ["Which is cheapest?", "Compare excess", "Waiting periods?"],
+  other: ["Which is cheapest?", "Which cover dental and heart?", "Which cover pregnancy?"],
+  fallback: ["Which is cheapest?", "Which cover dental and heart?", "Which cover pregnancy?"]
+};
+function chipsFor(kind, S, all) {
+  var one = S.length === 1 && !all;
+  var list = (one ? NEXT_ONE : NEXT_MANY)[kind] || (one ? NEXT_ONE : NEXT_MANY).fallback;
+  if (all) list = list.map(function (x) { return x === "What's different between them?" ? "Which cover the most services?" : x; });
+  return list.slice(0, 3);
+}
+function startersFor(ids) {
+  var S = scopeOf(ids), all = !(ids && ids.length);
+  if (S.length === 1 && !all) return ["What's covered?", "What's the excess?", "Waiting periods?", "Is dental covered?"];
+  if (all) return ["Which is cheapest?", "Which cover pregnancy?", "Which cover dental and heart?", "Which cover the most services?"];
+  return ["What's different between them?", "Which is cheapest?", "Compare excess", "Which cover dental?"];
+}
+
+/* =========================================================================
+   Offline answer engine: answers are built from the saved policy data.
+   Returns { paras:[...markdown-lite], table:{cols,rows}|null, chips:[...] }
+   ========================================================================= */
+function answer(q, ids) {
+  var S = scopeOf(ids), all = !(ids && ids.length), one = S.length === 1 && !all, many = !one;
+  var t = norm(q), qs = stems(q), words = t ? t.split(" ").length : 0;
+  function has(re) { return re.test(t); }
+  function R(paras, table, kind) { return { paras: paras.filter(Boolean), table: table || null, chips: chipsFor(kind || "other", S, all).filter(function (c) { return norm(c) !== t; }) }; }
+  var scopeWord = all ? "all " + P.length + " policies" : (one ? S[0].short : "the " + S.length + " selected policies");
+  var hint = all ? "You haven't picked any products yet, so this covers all " + P.length + ". Choose some on the left to narrow it down." : "";
+
+  if (words <= 4 && has(/^(hi|hello|hey|g'?day|howdy|good (morning|afternoon|evening))\b/))
+    return R([pick(["Hi there! ", "Hello! ", "Hey! "]) + "Pick products on the left, or ask me something like \"which policies cover dental?\""], null, "fallback");
+  if (words <= 6 && has(/\b(thanks|thank you|cheers|thx)\b/))
+    return R([pick(["You're welcome!", "Happy to help!", "No worries!"]) + " Anything else you'd like to check?"], null, "fallback");
+  if (words <= 4 && has(/\b(bye|goodbye|see you)\b/)) return { paras: ["Bye for now! Come back any time."], table: null, chips: [] };
+  if (words <= 3 && has(/^(ok|okay|yes|yeah|yep|no|nope|sure|cool|great|nice|alright)\b/))
+    return R(["Great. What else would you like to know?"], null, "fallback");
+
+  var askWait = has(/waiting|\bwait\b|pre-?existing/), askExcess = has(/excess|co-?pay/);
+  var mpm = t.match(/(?:under|below|less than|cheaper than|max(?:imum)?|up to|within|no more than)\s*\$?\s*(\d{2,3})\b/);
+  var maxPrem = mpm ? +mpm[1] : Infinity;
+  var rs = resolveServices(q);
+
+  /* ----- a specific service (or several) ----- */
+  if (rs.names.length) {
+    var pool = S.filter(function (p) { return p.premium <= maxPrem; });
+    if (!pool.length) return R(["None of " + scopeWord + " are priced at or under $" + maxPrem + " a month."], null, "premium");
+    var sv = rs.names;
+
+    if (sv.length > 1) {
+      var bold = sv.map(function (s) { return "**" + s.name + "**"; });
+      var full = sortPrem(pool.filter(function (p) { return sv.every(function (s) { return p.svc[s.name] === "c"; }); }));
+      var part = sortPrem(pool.filter(function (p) {
+        return full.indexOf(p) < 0 && sv.every(function (s) { return p.svc[s.name] !== "x"; });
+      }));
+      var cap = maxPrem < Infinity ? " at $" + maxPrem + " a month or less" : "";
+      var paras = [];
+      if (full.length) paras.push("**" + full.length + " of " + pool.length + "** policies fully cover " + joinList(bold) + cap + ". The lowest-priced is **" + full[0].short + "** at " + money(full[0].premium) + " a month.");
+      else paras.push("None of " + scopeWord + " fully cover " + joinList(bold) + cap + ".");
+      if (part.length) paras.push(part.length + " more cover all of them but with some restricted cover only: " + joinList(shorts(part)) + ".");
+      if (!full.length && !part.length) paras.push("At least one of those services isn't covered on any of them.");
+      if (hint) paras.push(hint);
+      var rows = full.concat(part).slice(0, 12).map(function (p) {
+        return { label: p.short, cells: sv.map(function (s) { return { s: p.svc[s.name], t: SYMBOL[p.svc[s.name]] }; }).concat([{ t: money(p.premium) }]) };
+      });
+      return R(paras, rows.length ? { cols: sv.map(function (s) { return s.base; }).concat(["Premium"]), rows: rows } : null, "which");
+    }
+
+    var s = sv[0];
+    if (one) {
+      var p0 = S[0], st = p0.svc[s.name], pa = [];
+      var who = "**" + p0.short + "**";
+      if (st === "c") pa.push(pick(["Yes, ", "Good news: "]) + "**" + s.name + "** is covered on " + who + ".");
+      else if (st === "r") pa.push("**" + s.name + "** is covered on " + who + ", but only as **restricted cover**. That only partly covers your hospital costs as a private patient in a public hospital, and you could face significant expenses in a private room or private hospital.");
+      else {
+        pa.push("No, **" + s.name + "** isn't covered on " + who + ".");
+        if (askWait) pa.push("Since it isn't covered, waiting periods don't come into it.");
+        pa.push("Other policies may cover it. Try the Find a policy panel on the left.");
+        relatedNotes(p0, s, qs).forEach(function (n) { pa.push(n); });
+        return R(pa, null, "service");
+      }
+      var pn = parenNote(s);
+      if (pn) pa.push(pn);
+      relatedNotes(p0, s, qs).forEach(function (n) { pa.push(n); });
+      var extra = [];
+      if (askExcess) extra.push("This policy has " + excessText(p0) + ".");
+      else if (p0.excess != null) extra.push("A **$" + p0.excess + " excess** applies per admission.");
+      if (askWait) extra.push("If you're a new or upgrading member, " + (waitingFor(p0, s) ? "the waiting period for this one is: " + lc(waitingFor(p0, s)) + "." : "the general waiting periods are " + generalWaiting(p0) + "."));
+      else if (p0.waiting.length) extra.push("Waiting periods can apply if you're a new or upgrading member.");
+      if (extra.length) pa.push(extra.join(" "));
+      return R(pa, null, "service");
+    }
+
+    var nc = pool.filter(function (p) { return p.svc[s.name] === "c"; }),
+        nr = pool.filter(function (p) { return p.svc[s.name] === "r"; }),
+        nx = pool.filter(function (p) { return p.svc[s.name] === "x"; });
+    var pm = ["**" + s.name + "** is fully covered on **" + nc.length + "** of " + pool.length + " policies" + (nr.length ? ", restricted on " + nr.length : "") + (nx.length ? ", and not covered on " + nx.length : "") + "."];
+    if (nc.length) { var cheapest = sortPrem(nc)[0]; pm.push("The lowest-priced policy that fully covers it is **" + cheapest.short + "** at " + money(cheapest.premium) + " a month."); }
+    else if (nr.length) pm.push("Only restricted cover is available for it here, which partly covers your costs as a private patient in a public hospital.");
+    else pm.push("None of them cover it.");
+    var pd = relatedNotes({ svc: {} , short: "" }, s, []).length; // (no related notes in multi view)
+    if (askWait) {
+      var wg = groupBy(nc.concat(nr), function (p) { return waitText(p, s); });
+      pm.push(wg.length === 1 ? "For new or upgrading members, the waiting period is the same on all of them: " + lc(wg[0].key) + "."
+        : "Waiting periods for new or upgrading members:\n" + bullets(wg.map(function (g) { return "**" + joinList(shorts(g.items)) + "**: " + lc(g.key); })));
+    }
+    if (hint) pm.push(hint);
+    var rows2 = sortPrem(pool).map(function (p) {
+      var cells = [{ s: p.svc[s.name], t: LABEL[p.svc[s.name]] }, { t: money(p.premium) }];
+      if (askExcess) cells.push({ t: p.excess != null ? "$" + p.excess : "?" });
+      return { label: p.short, cells: cells };
+    });
+    return R(pm, { cols: ["Cover", "Premium"].concat(askExcess ? ["Excess"] : []), rows: rows2 }, "service");
+  }
+
+  if (rs.ambiguous.length) {
+    var amb = rs.ambiguous;
+    if (one) {
+      return R(["A few services match that on **" + S[0].short + "**:", bullets(amb.map(function (x) { return "**" + x.name + "**: " + LABEL[S[0].svc[x.name]].toLowerCase(); }))], null, "service");
+    }
+    return { paras: ["A few services match that. Which one do you mean?", bullets(amb.map(function (x) { return x.name; }))], table: null, chips: amb.slice(0, 3).map(function (x) { return "Which cover " + x.base.toLowerCase() + "?"; }) };
+  }
+
+  /* ----- facts that are not about one service ----- */
+  if (askExcess) {
+    var eg = groupBy(S, function (p) { return excessText(p); });
+    if (eg.length === 1) return R([(one ? "**" + S[0].short + "** has " : "All of " + scopeWord + " have ") + eg[0].key + "."], null, "excess");
+    return R(["The excess differs:", bullets(eg.map(function (g) { return "**" + joinList(shorts(g.items)) + "**: " + g.key; }))], null, "excess");
+  }
+  if (askWait) {
+    var wg2 = groupBy(S, function (p) { return p.waiting.join("|"); });
+    if (wg2.length === 1) return R([(one ? "For **" + S[0].short + "**" : "On all of " + scopeWord) + ", if you're a new or upgrading member, these waiting periods apply:", bullets(S[0].waiting)], null, "waiting");
+    return R(["Waiting periods differ (for new or upgrading members):"].concat(wg2.map(function (g) { return "**" + joinList(shorts(g.items)) + "**\n" + bullets(g.items[0].waiting); })), null, "waiting");
+  }
+  if (has(/ambulance/)) {
+    var para = (S[0].ambulance || "").replace(/\s*\(https?:[^)]*\)/, "");
+    var ag = groupBy(S, ambSentence).filter(function (g) { return g.key; });
+    var out = [para];
+    if (ag.length) out.push(bullets(ag.map(function (g) { return "**" + joinList(shorts(g.items)) + "**: " + g.key; })));
+    var more = S.filter(function (p) { return p.ambulanceMore; });
+    if (more.length) out.push("For " + joinList(shorts(more)) + ", uncapped emergency ambulance transport is covered when the service is one Bupa recognises. If you can claim from another source, Bupa won't pay a benefit.");
+    return R(out, null, "other");
+  }
+  if (has(/accommodation|travel|lodging|per night/)) {
+    var acg = groupBy(S, function (p) { return p.accommodation || "No accommodation benefit is listed."; });
+    return R(acg.length === 1 ? [(one ? "" : "All of " + scopeWord + ": ") + acg[0].key] : ["Accommodation benefits differ:", bullets(acg.map(function (g) { return "**" + joinList(shorts(g.items)) + "**: " + g.key; }))], null, "other");
+  }
+  if (has(/accident|medicare levy|\bmls\b|surcharge/)) {
+    var ng = groupBy(S, function (p) { return p.notes.join(" "); });
+    return R(ng.length === 1 ? [ng[0].key] : ["It differs:", bullets(ng.map(function (g) { return "**" + joinList(shorts(g.items)) + "**: " + g.key; }))], null, "other");
+  }
+  if (has(/updated|up to date|how (recent|current)|when was/)) {
+    var ug = groupBy(S, function (p) { return p.updated || "not shown on the page"; });
+    return R(["Statement dates:", bullets(ug.map(function (g) { return "**" + joinList(shorts(g.items)) + "**: " + (g.key === "not shown on the page" ? g.key : "updated " + g.key); })), "These come from PrivateHealth.gov.au, so check there for anything newer."], null, "other");
+  }
+  if (has(/rebate|loading|lifetime health|\blhc\b|discount|government/)) {
+    return R(["Premiums here are shown before any Australian Government rebate, Lifetime Health Cover loading, age-based discount or insurer discount, so what you pay can differ. Check with Bupa for your own figure."], null, "premium");
+  }
+  if (has(/cheap|lowest|least expensive|most expensive|priciest|premium|price|\bcost|how much (is|are|does|do|would)|per month|monthly/)) {
+    var sp = sortPrem(S), pr = [];
+    if (one) pr.push("**" + S[0].short + "** costs **" + money(S[0].premium) + " a month**, before any rebate, loading or discount. It covers " + (S[0].covers || "one person") + ".");
+    else pr.push("The lowest-priced is **" + sp[0].short + "** at " + money(sp[0].premium) + " a month, and the highest is **" + sp[sp.length - 1].short + "** at " + money(sp[sp.length - 1].premium) + ". These are before any rebate, loading or discount.");
+    if (hint) pr.push(hint);
+    return R(pr, one ? null : { cols: ["Premium", "Tier"], rows: sp.slice(0, 12).map(function (p) { return { label: p.short, cells: [{ t: money(p.premium) }, { t: p.tier }] }; }) }, "premium");
+  }
+  if (has(/compar|differen|\bvs\b|versus|between|alike|similar/)) {
+    if (one) return R(["Pick at least two products on the left and I'll compare them, or press Select all."], null, "fallback");
+    var diffs = SVC.filter(function (s) { return S.some(function (p) { return p.svc[s.name] !== S[0].svc[s.name]; }); });
+    var same = SVC.length - diffs.length;
+    var exg = groupBy(S, function (p) { return "$" + p.excess; });
+    var cm = ["Across " + scopeWord + ", **" + diffs.length + " of " + SVC.length + "** services are treated differently and " + same + " are the same on all. " + (exg.length === 1 ? "The excess is the same (" + exg[0].key + ")." : "The excess differs.")];
+    if (S.length <= 4 && diffs.length) {
+      cm.push(diffs.length > 14 ? "Here are the first 14 differences. Use the Compare tab with Differences only to see them all." : "Here are the differences:");
+      var drows = [{ label: "Monthly premium", cells: S.map(function (p) { return { t: money(p.premium) }; }) }].concat(diffs.slice(0, 14).map(function (s) {
+        return { label: s.base, cells: S.map(function (p) { return { s: p.svc[s.name], t: SYMBOL[p.svc[s.name]] }; }) };
+      }));
+      return R(cm, { cols: shorts(S), rows: drows }, "compare");
+    }
+    cm.push("Open the Compare tab and tick **Differences only** to see exactly which ones.");
+    if (hint) cm.push(hint);
+    return R(cm, null, "compare");
+  }
+  var notCov = has(/not covered|isn'?t covered|aren'?t covered|doesn'?t (cover|include)|does not (cover|include)|exclu|left out|not included|missing/);
+  var coverWhat = has(/^(what|which|list|show)\b.*(cover|include|service)|covered services|inclusions|what.*cover/);
+  var most = has(/\bmost\b.*(cover|service)|widest|broadest|best coverage/);
+  if (notCov || coverWhat || most) {
+    if (one) {
+      var p1 = S[0], c1 = counts(p1);
+      var byS = function (code) { return SERVICES.filter(function (n) { return p1.svc[n] === code; }); };
+      if (notCov) return R(["**" + p1.short + "** doesn't cover **" + c1.x + "** services:", c1.x ? bullets(byS("x")) : "None."], null, "covered");
+      var ex = byS("c");
+      var cv = ["**" + p1.short + "** fully covers **" + c1.c + "** services" + (c1.r ? ", with **" + c1.r + "** restricted" : "") + " and doesn't cover " + c1.x + "."];
+      if (has(/full list|all of them|everything|list/) || ex.length <= 8) cv.push(bullets(ex));
+      else cv.push("A few examples: " + ex.slice(0, 6).join(", ") + " and more. Open the Compare tab for the full list.");
+      if (c1.r) cv.push("Restricted: " + joinList(byS("r")) + ".");
+      return R(cv, null, "covered");
+    }
+    var ranked = S.slice().sort(function (a, b) { return counts(b).c - counts(a).c || a.premium - b.premium; });
+    var top = ranked[0], ct = counts(top);
+    var mp = ["The most services are fully covered by **" + top.short + "** (" + ct.c + " of " + SVC.length + ")." + (ranked.length > 1 && counts(ranked[1]).c === ct.c ? " Others tie, so see the table." : "")];
+    if (hint) mp.push(hint);
+    return R(mp, { cols: ["Covered", "Restricted", "Not covered"], rows: ranked.slice(0, 12).map(function (p) { var c = counts(p); return { label: p.short, cells: [{ t: String(c.c) }, { t: String(c.r) }, { t: String(c.x) }] }; }) }, "covered");
+  }
+  if (has(/restrict/)) {
+    var rg = groupBy(S, function (p) { return SERVICES.filter(function (n) { return p.svc[n] === "r"; }).join(", ") || "none"; });
+    var rp = ["Restricted cover means the service is covered, but only partly: it partly covers your hospital costs as a private patient in a public hospital, and you could face significant expenses in a private room or private hospital."];
+    rp.push(rg.length === 1 ? (rg[0].key === "none" ? "None of these policies list restricted services." : "On " + (one ? S[0].short : "these policies") + " it applies to: " + rg[0].key + ".")
+      : "It applies to:\n" + bullets(rg.map(function (g) { return "**" + joinList(shorts(g.items)) + "**: " + g.key; })));
+    return R(rp, null, "other");
+  }
+  if (one && has(/tell me about|overview|summar|describe|details? (of|on|about)/)) {
+    var p2 = S[0], c2 = counts(p2);
+    return R(["**" + p2.short + "** (" + p2.tier + " tier) costs **" + money(p2.premium) + " a month** before rebates, with " + excessText(p2) + ".",
+      "It fully covers **" + c2.c + "** of " + SVC.length + " services, has " + c2.r + " restricted and doesn't cover " + c2.x + ".",
+      p2.updated ? "The statement was last updated on " + p2.updated + "." : ""], null, "covered");
+  }
+  if (has(/should i|is it worth|recommend|\bbest\b|good (policy|value)|right for me|which one should/)) {
+    return R(["I can't say what's right for you, because that depends on your situation. What I can do is help you narrow it down: use **Find a policy** on the left to pick the services you must have and a budget, then compare the results side by side."], null, "fallback");
+  }
+  if (has(/\bhelp\b|what can you|what do you (know|do)|how does this work/)) {
+    return R(["I can answer questions about these Bupa hospital policies: which cover a service (try \"which cover dental and heart?\"), the cheapest, the excess, waiting periods, ambulance, accommodation, and what differs between the ones you've selected."], null, "fallback");
+  }
+  if (has(/\b(cover|covered|include|included|claim)\b/)) {
+    return R(["I couldn't match that to a service on these policies. This is hospital cover, so it lists hospital treatments rather than everyday services like physio or GP visits.", "Try naming the treatment another way, or check with Bupa to be sure."], null, "fallback");
+  }
+  return R(["I'm not sure about that one. In offline mode I can talk about what's covered, specific treatments, the cheapest policy, the excess, waiting periods, ambulance and accommodation."], null, "fallback");
+}
+
+if (typeof globalThis !== "undefined") globalThis.__engine = { answer: answer, resolveServices: resolveServices, svcMatch: svcMatch, SVC: SVC, P: P, startersFor: startersFor };
+
+/* =========================================================================
+   UI
+   ========================================================================= */
+if (typeof document !== "undefined") (function () {
+  function $(id) { return document.getElementById(id); }
+  var state = { sel: [], tab: "compare", ai: false, history: [], busy: false };
+
+  /* ---------- small renderers ---------- */
+  function badge(code) { return '<span class="b b-' + code + '"><i>' + SYMBOL[code] + "</i> " + LABEL[code] + "</span>"; }
+  function render(text) {
+    return escHtml(text).split(/\n{2,}/).map(function (block) {
+      var lines = block.split("\n"), out = [], list = [], txt = [];
+      function flushList() { if (list.length) { out.push("<ul>" + list.map(function (l) { return "<li>" + l + "</li>"; }).join("") + "</ul>"); list = []; } }
+      function flushTxt() { if (txt.length) { out.push("<p>" + txt.join("<br>") + "</p>"); txt = []; } }
+      lines.forEach(function (l) {
+        if (/^\s*[-*•]\s+/.test(l)) { flushTxt(); list.push(l.replace(/^\s*[-*•]\s+/, "")); }
+        else { flushList(); txt.push(l); }
+      });
+      flushList(); flushTxt();
+      return out.join("");
+    }).join("").replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  }
+  function tableHTML(t) {
+    var h = '<table class="mini"><thead><tr><th></th>' + t.cols.map(function (c) { return "<th>" + escHtml(c) + "</th>"; }).join("") + "</tr></thead><tbody>";
+    t.rows.forEach(function (r) {
+      h += "<tr><th>" + escHtml(r.label) + "</th>" + r.cells.map(function (c) {
+        return "<td>" + (c.s ? '<span class="b b-' + c.s + '" title="' + LABEL[c.s] + '"><i>' + SYMBOL[c.s] + "</i>" + (c.t && c.t !== SYMBOL[c.s] ? " " + escHtml(c.t) : "") + "</span>" : escHtml(c.t || "")) + "</td>";
+      }).join("") + "</tr>";
+    });
+    return h + "</tbody></table>";
+  }
+
+  /* ---------- multi-select dropdown ---------- */
+  var openMs = null;
+  function MultiSelect(root, o) {
+    var sel = {}, open = false;
+    root.className = "ms";
+    root.innerHTML = '<button type="button" class="ms-btn" aria-haspopup="listbox"><span class="ms-text"></span><span class="caret">▾</span></button>' +
+      '<div class="ms-pop" hidden><input class="ms-search" type="search" placeholder="' + escHtml(o.searchPlaceholder || "Search…") + '" aria-label="Search"><div class="ms-list" role="listbox"></div>' +
+      '<div class="ms-foot"><button type="button" class="btn link" data-a="clear">Clear</button><button type="button" class="btn link" data-a="done">Done</button></div></div>';
+    var btn = root.querySelector(".ms-btn"), pop = root.querySelector(".ms-pop"), list = root.querySelector(".ms-list"), search = root.querySelector(".ms-search");
+    function get() { return o.items.filter(function (i) { return sel[i.value]; }).map(function (i) { return i.value; }); }
+    function text() {
+      var n = get().length;
+      root.querySelector(".ms-text").textContent = n === 0 ? o.placeholder : n + " selected";
+    }
+    function paint() {
+      var q = search.value, group = null, h = "", any = false;
+      o.items.forEach(function (i) {
+        if (q && !(o.match ? o.match(i, q) : (i.label + " " + (i.group || "")).toLowerCase().indexOf(q.toLowerCase()) >= 0)) return;
+        any = true;
+        if (i.group && i.group !== group) { group = i.group; h += '<div class="ms-group">' + escHtml(group) + "</div>"; }
+        h += '<label class="ms-item"><input type="checkbox" data-v="' + escHtml(i.value) + '"' + (sel[i.value] ? " checked" : "") + "><span>" + escHtml(i.label) + "</span>" + (i.right ? '<span class="r">' + escHtml(i.right) + "</span>" : "") + "</label>";
+      });
+      list.innerHTML = any ? h : '<div class="ms-empty">No matches</div>';
+    }
+    function setOpen(v) {
+      open = v; pop.hidden = !v;
+      if (v) { if (openMs && openMs !== api) openMs.close(); openMs = api; search.value = ""; paint(); search.focus(); }
+      else if (openMs === api) openMs = null;
+    }
+    var api = { get: get, close: function () { setOpen(false); },
+      set: function (vals) { sel = {}; vals.forEach(function (v) { sel[v] = 1; }); text(); if (open) paint(); } };
+    btn.addEventListener("click", function () { setOpen(!open); });
+    search.addEventListener("input", paint);
+    list.addEventListener("change", function (e) {
+      var v = e.target.getAttribute("data-v"); if (v == null) return;
+      if (e.target.checked) sel[v] = 1; else delete sel[v];
+      text(); o.onChange(get());
+    });
+    pop.addEventListener("click", function (e) {
+      var a = e.target.getAttribute && e.target.getAttribute("data-a");
+      if (a === "clear") { sel = {}; text(); paint(); o.onChange(get()); }
+      if (a === "done") setOpen(false);
+    });
+    root.addEventListener("keydown", function (e) { if (e.key === "Escape") { setOpen(false); btn.focus(); } });
+    text();
+    return api;
+  }
+  document.addEventListener("mousedown", function (e) { if (openMs && !e.target.closest(".ms")) openMs.close(); });
+
+  /* ---------- selection ---------- */
+  var prodItems = [];
+  DATA.tiers.forEach(function (tier) {
+    P.filter(function (p) { return p.tier === tier; }).forEach(function (p) {
+      prodItems.push({ value: p.id, label: p.short, group: tier, right: money(p.premium) + "/mo" });
+    });
+  });
+  var prodPicker = MultiSelect($("prodPicker"), { items: prodItems, placeholder: "Choose products…", searchPlaceholder: "Search products", onChange: function (v) { setSel(v, true); } });
+  var svcPicker = MultiSelect($("svcPicker"), {
+    items: SERVICES.map(function (n) { return { value: n, label: n }; }), placeholder: "Pick services you need…", searchPlaceholder: "Search, e.g. knee, dental",
+    match: function (i, q) { return svcMatch(SVCBY[i.value], q); }, onChange: function () { renderFind(); }
+  });
+
+  function selPolicies() { return state.sel.map(function (i) { return BYID[i]; }).filter(Boolean).sort(function (a, b) { return b.premium - a.premium; }); }
+  function setSel(ids, fromPicker) {
+    state.sel = ids.filter(function (i) { return BYID[i]; });
+    if (!fromPicker) prodPicker.set(state.sel);
+    try { history.replaceState(null, "", "#p=" + state.sel.map(function (i) { return i.replace(/^BUP_/, ""); }).join(",")); } catch (e) {}
+    renderChips(); renderCompare(); renderDetails(); renderFind(); updateScope();
+  }
+  function renderChips() {
+    $("selChips").innerHTML = selPolicies().map(function (p) {
+      return '<span class="chip">' + escHtml(p.short) + '<button type="button" data-rm="' + p.id + '" aria-label="Remove ' + escHtml(p.short) + '">×</button></span>';
+    }).join("");
+  }
+  $("selChips").addEventListener("click", function (e) {
+    var id = e.target.getAttribute && e.target.getAttribute("data-rm");
+    if (id) setSel(state.sel.filter(function (x) { return x !== id; }));
+  });
+  $("selAll").addEventListener("click", function () { setSel(P.map(function (p) { return p.id; })); });
+  $("selNone").addEventListener("click", function () { setSel([]); });
+
+  /* ---------- find a policy ---------- */
+  function renderFind() {
+    var must = svcPicker.get(), lvl = $("level").value, mp = +$("maxPrem").value || Infinity;
+    function ok(p, level) { return must.every(function (n) { return p.svc[n] === "c" || (level === "cr" && p.svc[n] === "r"); }); }
+    var m = sortPrem(P.filter(function (p) { return p.premium <= mp && ok(p, lvl); }));
+    var extra = lvl === "c" ? P.filter(function (p) { return p.premium <= mp && !ok(p, "c") && ok(p, "cr"); }).length : 0;
+    var filtered = must.length || mp < Infinity;
+    var h = '<div class="head"><strong>' + (filtered ? m.length + " of " + P.length + " policies match" : "All " + P.length + " policies") + "</strong>";
+    h += '<button type="button" class="btn primary" id="cmpThese"' + (m.length ? "" : " disabled") + ">Compare " + (m.length === P.length ? "all" : "these") + "</button></div>";
+    if (!m.length) h += '<div class="note">No policies match. Try fewer must-haves, a higher price, or include restricted cover.</div>';
+    m.forEach(function (p) {
+      var inSel = state.sel.indexOf(p.id) >= 0;
+      h += '<div class="res"><div class="t"><div class="n">' + escHtml(p.short) + '</div><div class="m">' + money(p.premium) + "/mo · " + escHtml(p.tier) + "</div>" +
+        (must.length && must.length <= 3 ? '<div style="margin-top:3px">' + must.map(function (n) { return '<span class="b b-' + p.svc[n] + '" title="' + escHtml(n) + ": " + LABEL[p.svc[n]] + '"><i>' + SYMBOL[p.svc[n]] + "</i></span> "; }).join("") + "</div>" : "") +
+        '</div><button type="button" class="btn" data-add="' + p.id + '"' + (inSel ? " disabled" : "") + ">" + (inSel ? "Added" : "Add") + "</button></div>";
+    });
+    if (extra) h += '<div class="note">' + extra + " more " + (extra === 1 ? "policy matches" : "policies match") + ' if restricted cover is included. <button type="button" class="btn link" id="inclR">Include them</button></div>';
+    else if (must.length) h += '<div class="note">R (restricted) only partly covers costs as a private patient in a public hospital.</div>';
+    $("found").innerHTML = h;
+    var cmp = $("cmpThese"); if (cmp) cmp.onclick = function () { setSel(m.map(function (p) { return p.id; })); };
+    var ir = $("inclR"); if (ir) ir.onclick = function () { $("level").value = "cr"; renderFind(); };
+  }
+  $("found").addEventListener("click", function (e) {
+    var id = e.target.getAttribute && e.target.getAttribute("data-add");
+    if (id && state.sel.indexOf(id) < 0) setSel(state.sel.concat([id]));
+  });
+  $("level").addEventListener("change", renderFind);
+  $("maxPrem").addEventListener("change", renderFind);
+
+  /* ---------- compare table ---------- */
+  function renderCompare() {
+    var cols = selPolicies(), q = $("svcSearch").value.trim(), diffOnly = $("diffOnly").checked;
+    if (!cols.length) {
+      $("strip").innerHTML = "";
+      $("cmp").innerHTML = '<div class="empty"><h3>Choose products to compare</h3><p>Use the Products dropdown, or set your must-haves under Find a policy and press Compare.</p><button type="button" class="btn primary" id="cmpAll">Compare all ' + P.length + "</button></div>";
+      $("cmpAll").onclick = function () { setSel(P.map(function (p) { return p.id; })); };
+      return;
+    }
+    var rows = SVC.filter(function (s) { return svcMatch(s, q); });
+    if (diffOnly && cols.length > 1) rows = rows.filter(function (s) { return cols.some(function (p) { return p.svc[s.name] !== cols[0].svc[s.name]; }); });
+
+    var strip = "";
+    if (q) {
+      var hit = findServices(norm(q), stems(q));
+      var target = hit.length === 1 ? hit[0] : (rows.length === 1 ? rows[0] : null);
+      if (target) {
+        var c = { c: 0, r: 0, x: 0 };
+        cols.forEach(function (p) { c[p.svc[target.name]]++; });
+        strip = '<div class="strip"><strong>' + escHtml(target.name) + "</strong>: fully covered on <strong>" + c.c + "</strong> of " + cols.length + " selected" + (c.r ? ", restricted on " + c.r : "") + (c.x ? ", not covered on " + c.x : "") + ".</div>";
+      }
+    }
+    $("strip").innerHTML = strip;
+
+    var h = '<div class="tablewrap"><table class="cmp"><thead><tr><th class="corner">Service <span style="color:var(--muted);font-weight:400">(' + rows.length + " of " + SVC.length + ")</span></th>";
+    cols.forEach(function (p) {
+      h += '<th class="ph"><button type="button" class="rm" data-rm="' + p.id + '" aria-label="Remove ' + escHtml(p.short) + '">×</button><div class="tier">' + escHtml(p.tier) + '</div><div class="nm" data-detail="' + p.id + '">' + escHtml(p.short) + '</div><div class="pr">' + money(p.premium) + "/mo</div></th>";
+    });
+    h += "</tr></thead><tbody>";
+    h += '<tr class="meta"><th>Excess per admission</th>' + cols.map(function (p) { return "<td>" + (p.excess != null ? "$" + p.excess : "–") + "</td>"; }).join("") + "</tr>";
+    rows.forEach(function (s) {
+      h += '<tr' + (q && rows.length <= 3 ? ' class="hl"' : "") + '><th>' + escHtml(s.name) + "</th>" + cols.map(function (p) {
+        return '<td class="ask" data-ask="' + p.id + '|' + escHtml(s.name) + '" title="Ask about this">' + badge(p.svc[s.name]) + "</td>";
+      }).join("") + "</tr>";
+    });
+    if (!rows.length) h += '<tr><td colspan="' + (cols.length + 1) + '" class="empty">No services match' + (diffOnly ? " (Differences only is on)" : "") + ".</td></tr>";
+    $("cmp").innerHTML = h + "</tbody></table></div>";
+  }
+  $("svcSearch").addEventListener("input", renderCompare);
+  $("diffOnly").addEventListener("change", renderCompare);
+  $("cmp").addEventListener("click", function (e) {
+    var rm = e.target.getAttribute && e.target.getAttribute("data-rm");
+    if (rm) return setSel(state.sel.filter(function (x) { return x !== rm; }));
+    var d = e.target.getAttribute && e.target.getAttribute("data-detail");
+    if (d) { showTab("details"); var el = document.getElementById("pc-" + d); if (el && el.scrollIntoView) el.scrollIntoView({ block: "start" }); return; }
+    var cell = e.target.closest && e.target.closest("td[data-ask]");
+    if (cell) {
+      var parts = cell.getAttribute("data-ask").split("|"), p = BYID[parts[0]];
+      if (p) { setView("chat"); ask("Is " + parts[1] + " covered on " + p.short + "?", [p.id]); }
+    }
+  });
+
+  /* ---------- details ---------- */
+  function renderDetails() {
+    var cols = selPolicies();
+    if (!cols.length) { $("tab-details").innerHTML = '<div class="empty"><h3>No products selected</h3><p>Choose products to see their details.</p></div>'; return; }
+    $("tab-details").innerHTML = '<div class="cards">' + cols.map(function (p) {
+      var c = counts(p);
+      return '<article class="card pcard" id="pc-' + p.id + '"><h3>' + escHtml(p.short) + '</h3><div class="meta">' + escHtml(p.code) + " · " + escHtml(p.tier) + " · " + (p.updated ? "updated " + escHtml(p.updated) : "update date not shown") + "</div>" +
+        "<dl><dt>Monthly premium</dt><dd><strong>" + money(p.premium) + "</strong> before any rebate, loading or discount. Covers " + escHtml(p.covers || "one person") + (p.state ? ", available in " + escHtml(p.state) : "") + ".</dd>" +
+        "<dt>Excess</dt><dd>" + render(excessText(p).replace(/^an /, "An ").replace(/^$/, "")) + "</dd>" +
+        "<dt>Services</dt><dd>" + c.c + " covered · " + c.r + " restricted · " + c.x + " not covered</dd>" +
+        "<dt>Waiting periods (new or upgrading members)</dt><dd><ul>" + p.waiting.map(function (w) { return "<li>" + escHtml(w) + "</li>"; }).join("") + "</ul></dd>" +
+        (p.accommodation ? "<dt>Accommodation</dt><dd>" + escHtml(p.accommodation) + "</dd>" : "") +
+        "<dt>Hospital cover notes</dt><dd>" + escHtml(p.notes.join(" ")) + "</dd>" +
+        "<dt>Ambulance</dt><dd>" + escHtml((p.ambulance || "").replace(/\s*\(https?:[^)]*\)/, "")) + (ambSentence(p) ? " " + escHtml(ambSentence(p)) : "") + "</dd>" +
+        (p.other ? "<dt>Other features</dt><dd>" + escHtml(p.other) + "</dd>" : "") + "</dl>" +
+        (p.url ? '<p style="margin:10px 0 0"><a href="' + escHtml(p.url) + '" target="_blank" rel="noopener noreferrer">Open the official statement on PrivateHealth.gov.au</a></p>' : "") + "</article>";
+    }).join("") + "</div>";
+  }
+
+  /* ---------- tabs and layout ---------- */
+  function showTab(t) {
+    state.tab = t;
+    $("tab-compare").hidden = t !== "compare"; $("tab-details").hidden = t !== "details";
+    Array.prototype.forEach.call(document.querySelectorAll(".tabs button"), function (b) { b.classList.toggle("on", b.getAttribute("data-tab") === t); });
+  }
+  Array.prototype.forEach.call(document.querySelectorAll(".tabs button"), function (b) { b.addEventListener("click", function () { showTab(b.getAttribute("data-tab")); }); });
+  function setView(v) {
+    document.body.classList.toggle("view-chat", v === "chat");
+    Array.prototype.forEach.call(document.querySelectorAll(".mtabs button"), function (b) { b.classList.toggle("on", b.getAttribute("data-view") === v); });
+  }
+  Array.prototype.forEach.call(document.querySelectorAll(".mtabs button"), function (b) { b.addEventListener("click", function () { setView(b.getAttribute("data-view")); }); });
+
+  /* ---------- chat ---------- */
+  var log = $("log"), input = $("input"), send = $("send");
+  function addMsg(role, html) {
+    var d = document.createElement("div");
+    d.className = "msg " + role; d.innerHTML = html;
+    log.appendChild(d); log.scrollTop = log.scrollHeight;
+    return d;
+  }
+  function setSugg(list) {
+    $("sugg").innerHTML = "";
+    list.forEach(function (s) {
+      var b = document.createElement("button"); b.type = "button"; b.textContent = s;
+      b.addEventListener("click", function () { ask(s); });
+      $("sugg").appendChild(b);
+    });
+  }
+  function updateScope() {
+    var S = selPolicies();
+    $("scope").textContent = S.length ? "Asking about: " + shorts(S).join(", ") : "Asking about: all " + P.length + " policies (choose products to narrow)";
+    if (!state.busy) setSugg(startersFor(state.sel));
+  }
+  function setMode(ai) {
+    state.ai = ai;
+    var m = $("mode"); m.textContent = ai ? "Claude AI" : "Offline"; m.className = "mode" + (ai ? "" : " off");
+    m.title = ai ? "Answers come from Claude, using the policies you've selected." : "Answers are built from the saved policy data. Open this page from the server to use Claude AI.";
+  }
+  function showResult(bubble, res) {
+    bubble.innerHTML = render(res.paras.join("\n\n")) + (res.table ? tableHTML(res.table) : "");
+    setSugg(res.chips || []);
+  }
+  function ask(q, idsOverride) {
+    q = q.trim();
+    if (state.busy || !q) return;
+    var ids = idsOverride || state.sel;
+    state.busy = true; send.disabled = true; $("sugg").innerHTML = "";
+    addMsg("user", escHtml(q));
+    var bubble = addMsg("bot", '<span class="dots"><span></span><span></span><span></span></span>');
+    function finish() { state.busy = false; send.disabled = false; log.scrollTop = log.scrollHeight; input.focus(); }
+    function offline() {
+      setTimeout(function () { showResult(bubble, answer(q, ids)); finish(); }, 350 + Math.random() * 250);
+    }
+    if (!state.ai) return offline();
+    state.history.push({ role: "user", content: q });
+    var reply = "";
+    fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: state.history, policies: ids }) })
+      .then(function (res) {
+        if (!res.ok || !res.body) { return res.text().then(function (t) { throw { status: res.status, text: t }; }); }
+        var reader = res.body.getReader(), dec = new TextDecoder();
+        function pump() {
+          return reader.read().then(function (r) {
+            if (r.done) return;
+            reply += dec.decode(r.value, { stream: true });
+            bubble.innerHTML = render(reply); log.scrollTop = log.scrollHeight;
+            return pump();
+          });
+        }
+        return pump();
+      })
+      .then(function () { state.history.push({ role: "assistant", content: reply }); setSugg(startersFor(state.sel).slice(0, 3)); finish(); })
+      .catch(function (err) {
+        state.history.pop();
+        if (err && err.status === 429) { bubble.innerHTML = render(err.text || "Please wait a moment and try again."); finish(); return; }
+        showResult(bubble, answer(q, ids));   // AI unavailable: fall back to the offline answers
+        finish();
+      });
+  }
+  $("form").addEventListener("submit", function (e) { e.preventDefault(); var q = input.value; input.value = ""; ask(q); });
+
+  /* ---------- start ---------- */
+  var dates = P.map(function (p) { return p.updated; }).filter(Boolean).map(function (d) { return { d: d, t: Date.parse(d) }; }).filter(function (x) { return !isNaN(x.t); }).sort(function (a, b) { return b.t - a.t; });
+  $("asof").textContent = P.length + " Bupa hospital policies (Queensland) · from PrivateHealth.gov.au" + (dates.length ? ", latest statement " + dates[0].d : "") + " · general information, not advice";
+  addMsg("bot", render("Hi! Choose products on the left, search the services in the table, or ask me anything about them, like \"which policies cover dental and heart under $250?\""));
+  var m = (location.hash || "").match(/p=([^&]*)/);
+  var fromHash = m && m[1] ? m[1].split(",").map(function (x) { return "BUP_" + decodeURIComponent(x); }).filter(function (i) { return BYID[i]; }) : [];
+  setSel(fromHash);
+  renderFind();
+  if (location.protocol === "file:") setMode(false);
+  else fetch("/api/info").then(function (r) { return r.json(); }).then(function (i) { setMode(!!i.ai); }).catch(function () { setMode(false); });
+})();
+</script>
+</body>
+</html>
